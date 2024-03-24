@@ -30,7 +30,22 @@ with dag(
 
 from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
+from airflow.providers.amazon.aws.operators.eks import EksCreateClusterOperator
+from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
 from datetime import datetime, timedelta
+
+from airflow.models.connection import Connection
+
+"""# Define the AWS connection
+conn = Connection(
+    conn_id="aws_demo",
+    conn_type="aws",
+    extra={
+        "config_kwargs": {
+            "signature_version": "unsigned",
+        },
+    },
+)"""
 
 default_args = {
     'owner': 'airflow',
@@ -47,16 +62,6 @@ dag = DAG(
     schedule_interval='@daily',
 )
 
-"""# New BashOperator to install eksctl
-install_eksctl = BashOperator(
-    task_id='install_eksctl',
-    bash_command="
-        curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
-        mv /tmp/eksctl /usr/local/bin
-    ",
-    dag=dag,
-) """
-
 create_cluster = BashOperator(
     task_id='create_eks_cluster',
     bash_command="""
@@ -71,6 +76,14 @@ create_cluster = BashOperator(
     """,
     dag=dag,
 )
+
+# Create an instance of EksCreateClusterOperator
+create_cluster_task = EksCreateClusterOperator(
+        cluster_name="RayCluster",
+        cluster_role_arn="arn:aws:iam::771371893023:role/KubeRay_Data_Team", 
+        wait_for_completion=True,  # Set to False if you don't want to wait for the cluster creation to complete
+        region="us-east-2"  # Specify your desired region
+    )
 
 wait_for_cluster = BashOperator(
     task_id='wait_for_cluster_ready',
