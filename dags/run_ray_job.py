@@ -40,10 +40,21 @@ default_args = {
 }
 
 dag = DAG(
-    'eks_cluster_setup',
+    'run_ray_job',
     default_args=default_args,
-    description='Setup EKS cluster and deploy KubeRay operator',
-    schedule_interval=timedelta(days=1),
+    description='Setup EKS cluster with eksctl and deploy KubeRay operator',
+    # Update the schedule to run daily
+    schedule_interval='@daily',
+)
+
+# New BashOperator to install eksctl
+install_eksctl = BashOperator(
+    task_id='install_eksctl',
+    bash_command="""
+        curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+        sudo mv /tmp/eksctl /usr/local/bin
+    """,
+    dag=dag,
 )
 
 create_cluster = BashOperator(
@@ -104,4 +115,4 @@ apply_ray_cluster_spec = BashOperator(
     dag=dag,
 )
 
-create_cluster >> wait_for_cluster >> update_kubeconfig >> check_install_helm >> add_kuberay_operator >> apply_ray_cluster_spec
+install_eksctl >> create_cluster >> wait_for_cluster >> update_kubeconfig >> check_install_helm >> add_kuberay_operator >> apply_ray_cluster_spec
