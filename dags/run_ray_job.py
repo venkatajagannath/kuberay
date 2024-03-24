@@ -62,9 +62,9 @@ dag = DAG(
     schedule_interval='@daily',
 )
 
-create_cluster = BashOperator(
+"""create_cluster = BashOperator(
     task_id='create_eks_cluster',
-    bash_command="""
+    bash_command="
         eksctl create cluster \
         --name my-eks-cluster \
         --region us-east-2 \
@@ -73,9 +73,10 @@ create_cluster = BashOperator(
         --nodes-min 1 \
         --nodes-max 3 \
         --managed
-    """,
+    ",
     dag=dag,
-)
+) 
+"""
 
 # Create an instance of EksCreateClusterOperator
 create_cluster_task = EksCreateClusterOperator(
