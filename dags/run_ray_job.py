@@ -47,15 +47,15 @@ dag = DAG(
     schedule_interval='@daily',
 )
 
-# New BashOperator to install eksctl
+"""# New BashOperator to install eksctl
 install_eksctl = BashOperator(
     task_id='install_eksctl',
-    bash_command="""
+    bash_command="
         curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
-        sudo mv /tmp/eksctl /usr/local/bin
-    """,
+        mv /tmp/eksctl /usr/local/bin
+    ",
     dag=dag,
-)
+) """
 
 create_cluster = BashOperator(
     task_id='create_eks_cluster',
@@ -115,4 +115,4 @@ apply_ray_cluster_spec = BashOperator(
     dag=dag,
 )
 
-install_eksctl >> create_cluster >> wait_for_cluster >> update_kubeconfig >> check_install_helm >> add_kuberay_operator >> apply_ray_cluster_spec
+create_cluster >> wait_for_cluster >> update_kubeconfig >> check_install_helm >> add_kuberay_operator >> apply_ray_cluster_spec
