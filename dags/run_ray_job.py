@@ -36,16 +36,16 @@ from datetime import datetime, timedelta
 
 from airflow.models.connection import Connection
 
-"""# Define the AWS connection
+# Define the AWS connection
 conn = Connection(
-    conn_id="aws_demo",
+    conn_id="aws_conn",
     conn_type="aws",
     extra={
         "config_kwargs": {
             "signature_version": "unsigned",
         },
     },
-)"""
+)
 
 default_args = {
     'owner': 'airflow',
@@ -90,6 +90,7 @@ create_cluster = EksCreateClusterOperator(
         'securityGroupIds': ['sg-092e6e946ab0d4cd5']},
         wait_for_completion=True,
         region="us-east-2",
+        aws_conn_id = conn,
         dag = dag,
     )
 
