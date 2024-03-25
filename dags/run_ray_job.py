@@ -94,15 +94,9 @@ create_cluster = EksCreateClusterOperator(
         dag = dag,
     )
 
-"""wait_for_cluster = BashOperator(
-    task_id='wait_for_cluster_ready',
-    bash_command='kubectl wait --for=condition=Ready nodes --all --timeout=10m',
-    dag=dag,
-)"""
-
 update_kubeconfig = BashOperator(
     task_id='update_kubeconfig',
-    bash_command='eksctl utils write-kubeconfig --cluster my-eks-cluster --region us-east-2',
+    bash_command='aws eks update-kubeconfig --region us-east-2 --name RayCluster',
     dag=dag,
 )
 
