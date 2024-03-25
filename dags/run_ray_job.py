@@ -83,6 +83,7 @@ create_cluster = EksCreateClusterOperator(
         task_id='create_eks_cluster',
         cluster_name="RayCluster",
         cluster_role_arn="arn:aws:iam::771371893023:role/KubeRay_Data_Team",
+        nodegroup_name = "KubeRay"
         nodegroup_role_arn='arn:aws:iam::771371893023:role/KubeRay_Data_Team',
         resources_vpc_config={
         'subnetIds': ['subnet-0046417cbc4917f77', 'subnet-022f9f8225972220c'],
