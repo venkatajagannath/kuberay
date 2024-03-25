@@ -90,7 +90,7 @@ create_cluster = EksCreateClusterOperator(
         'securityGroupIds': ['sg-092e6e946ab0d4cd5']},
         wait_for_completion=True,
         region="us-east-2",
-        aws_conn_id = conn,
+        aws_conn_id = conn.conn_id,
         dag = dag,
     )
 
