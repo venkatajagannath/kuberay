@@ -63,47 +63,23 @@ dag = DAG(
     schedule_interval='@daily',
 )
 
-"""eksctl_create_cluster = DockerOperator(
-  task_id='eksctl_create_cluster',
-  image='public.ecr.aws/eksctl/eksctl',
-  container_name='eksctl',
-  command = "eksctl create cluster \
-        --name RayCluster \
+eksctl_create_cluster = BashOperator(
+    task_id='create_eks_cluster',
+    bash_command="""
+        eksctl create cluster \
+        --name my-eks-cluster \
         --region us-east-2 \
         --node-type m5.2xlarge \
         --nodes 2 \
         --nodes-min 1 \
         --nodes-max 3 \
-        --managed",
-  api_version='auto',
-  auto_remove=True,
-  docker_url='unix://var/run/docker.sock',
-  network_mode="bridge",
-  tty=True,
-  xcom_all=False,
-  mount_tmp_dir=False,
-  environment=dict(os.environ),
-  dag = dag,
-)"""
-
-#create_cluster = BashOperator(
-#    task_id='create_eks_cluster',
-#    bash_command="""
-#        docker run --rm -it public.ecr.aws/eksctl/eksctl \
-#        eksctl create cluster \
-#        --name my-eks-cluster \
-#        --region us-east-2 \
-#        --node-type m5.2xlarge \
-#        --nodes 2 \
-#        --nodes-min 1 \
-#        --nodes-max 3 \
-#       --managed
-#    """,
-#    dag=dag,
-#)
+       --managed
+    """,
+    dag=dag,
+)
 
 # Create an instance of EksCreateClusterOperator
-eksctl_create_cluster = EksCreateClusterOperator(
+"""eksctl_create_cluster = EksCreateClusterOperator(
         task_id='create_eks_cluster',
         cluster_name="RayCluster",
         cluster_role_arn="arn:aws:iam::771371893023:role/KubeRay_Data_Team",
@@ -117,7 +93,7 @@ eksctl_create_cluster = EksCreateClusterOperator(
         aws_conn_id = conn.conn_id,
         dag = dag,
     )
-
+"""
 update_kubeconfig = BashOperator(
     task_id='update_kubeconfig',
     bash_command='aws eks update-kubeconfig --region us-east-2 --name RayCluster --alias kuberay-profile',
