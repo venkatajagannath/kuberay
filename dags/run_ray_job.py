@@ -62,9 +62,10 @@ dag = DAG(
     schedule_interval='@daily',
 )
 
-"""create_cluster = BashOperator(
+create_cluster = BashOperator(
     task_id='create_eks_cluster',
-    bash_command="
+    bash_command="""
+        docker run --rm -it public.ecr.aws/eksctl/eksctl \
         eksctl create cluster \
         --name my-eks-cluster \
         --region us-east-2 \
@@ -73,13 +74,12 @@ dag = DAG(
         --nodes-min 1 \
         --nodes-max 3 \
         --managed
-    ",
+    """,
     dag=dag,
-) 
-"""
+)
 
 # Create an instance of EksCreateClusterOperator
-create_cluster = EksCreateClusterOperator(
+"""create_cluster = EksCreateClusterOperator(
         task_id='create_eks_cluster',
         cluster_name="RayCluster",
         cluster_role_arn="arn:aws:iam::771371893023:role/KubeRay_Data_Team",
@@ -93,7 +93,7 @@ create_cluster = EksCreateClusterOperator(
         aws_conn_id = conn.conn_id,
         dag = dag,
     )
-
+"""
 update_kubeconfig = BashOperator(
     task_id='update_kubeconfig',
     bash_command='aws eks update-kubeconfig --region us-east-2 --name RayCluster --alias kuberay-profile',
