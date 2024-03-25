@@ -86,7 +86,7 @@ create_cluster = EksCreateClusterOperator(
         nodegroup_name = "KubeRay",
         nodegroup_role_arn='arn:aws:iam::771371893023:role/KubeRay_Data_Team',
         resources_vpc_config={
-        'subnetIds': ['subnet-0046417cbc4917f77', 'subnet-022f9f8225972220c'],
+        'subnetIds': ['subnet-0e184b23aec13ff41', 'subnet-0c13f543fea1e5eb4','subnet-0099de4f8ad7a42e1','subnet-026d89c844dec4b2a'],
         'securityGroupIds': ['sg-092e6e946ab0d4cd5']},
         wait_for_completion=True,
         region="us-east-2",
