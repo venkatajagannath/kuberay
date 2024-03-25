@@ -67,7 +67,7 @@ eksctl_create_cluster = BashOperator(
     task_id='create_eks_cluster',
     bash_command="""
         eksctl create cluster \
-        --name my-eks-cluster \
+        --name RayCluster \
         --region us-east-2 \
         --node-type m5.2xlarge \
         --nodes 2 \
