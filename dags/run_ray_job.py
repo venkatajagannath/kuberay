@@ -101,21 +101,6 @@ update_kubeconfig = BashOperator(
     dag=dag,
 )
 
-"""check_install_helm = BashOperator(
-    task_id='check_install_helm',
-    bash_command="
-        if ! command -v helm &> /dev/null
-        then
-            curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-            chmod 700 get_helm.sh
-            ./get_helm.sh
-        else
-            echo "Helm is already available."
-        fi
-    ",
-    dag=dag,
-)"""
-
 add_kuberay_operator = BashOperator(
     task_id='add_kuberay_operator',
     bash_command="""
@@ -132,9 +117,12 @@ apply_ray_cluster_spec = BashOperator(
     dag=dag,
 )
 
-delete_cluster = EksDeleteClusterOperator(
-    task_id="delete_cluster",
-    cluster_name="RayCluster",
+eksctl_delete_cluster = BashOperator(
+    task_id='eksctl_delete_cluster',
+    bash_command="""
+        eksctl delete cluster --name RayCluster --region us-east-2
+    """,
+    dag=dag,
 )
 
-eksctl_create_cluster >> update_kubeconfig >> add_kuberay_operator >> apply_ray_cluster_spec >> delete_cluster
+eksctl_create_cluster >> update_kubeconfig >> add_kuberay_operator >> apply_ray_cluster_spec >> eksctl_delete_cluster
