@@ -93,22 +93,46 @@ eksctl_create_cluster = BashOperator(
         aws_conn_id = conn.conn_id,
         dag = dag,
     )
-"""
+
 update_kubeconfig = BashOperator(
     task_id='update_kubeconfig',
     #bash_command='aws eks update-kubeconfig --region us-east-2 --name RayCluster --alias kuberay-profile',
-    bash_command='eksctl utils write-kubeconfig --cluster=RayCluster --region=us-east-2',
+    bash_command='eksctl utils write-kubeconfig --cluster=RayCluster --region=us-east-2 --kubeconfig=$(mktemp /tmp/kubeconfig-RayCluster.XXXXXX)',
     dag=dag,
 )
 
 add_kuberay_operator = BashOperator(
     task_id='add_kuberay_operator',
-    bash_command="""
+    bash_command="
         helm repo add kuberay https://ray-project.github.io/kuberay-helm/
         helm repo update
         helm install kuberay-operator kuberay/kuberay-operator --version 1.0.0
-    """,
+    ",
     dag=dag,
+)
+"""
+
+# Define a static path for the kubeconfig to ensure accessibility across tasks
+kubeconfig_path = '/tmp/kubeconfig_raycluster'
+
+# Task to generate kubeconfig
+generate_kubeconfig = BashOperator(
+        task_id='generate_kubeconfig',
+        bash_command=f"""
+        eksctl utils write-kubeconfig --cluster=RayCluster --region=us-east-2 --kubeconfig={kubeconfig_path}
+        """,
+        dag = dag,
+    )
+
+# Task to install using Helm
+helm_install = BashOperator(
+    task_id='helm_install',
+    bash_command=f"""
+    helm repo add kuberay https://ray-project.github.io/kuberay-helm/ --kubeconfig {kubeconfig_path} &&
+    helm repo update --kubeconfig {kubeconfig_path} &&
+    helm install kuberay-operator kuberay/kuberay-operator --version 1.0.0 --kubeconfig {kubeconfig_path}
+    """,
+    dag = dag,
 )
 
 apply_ray_cluster_spec = BashOperator(
@@ -125,4 +149,4 @@ eksctl_delete_cluster = BashOperator(
     dag=dag,
 )
 
-eksctl_create_cluster >> update_kubeconfig >> add_kuberay_operator >> apply_ray_cluster_spec >> eksctl_delete_cluster
+eksctl_create_cluster >> generate_kubeconfig >> helm_install >> apply_ray_cluster_spec >> eksctl_delete_cluster
