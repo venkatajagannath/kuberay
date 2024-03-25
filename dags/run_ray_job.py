@@ -80,6 +80,7 @@ dag = DAG(
 
 # Create an instance of EksCreateClusterOperator
 create_cluster = EksCreateClusterOperator(
+        task_id='create_eks_cluster',
         cluster_name="RayCluster",
         cluster_role_arn="arn:aws:iam::771371893023:role/KubeRay_Data_Team",
         resources_vpc_config={
