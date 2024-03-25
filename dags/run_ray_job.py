@@ -30,7 +30,7 @@ with dag(
 
 from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
-from airflow.providers.amazon.aws.operators.eks import EksCreateClusterOperator
+from airflow.providers.amazon.aws.operators.eks import EksCreateClusterOperator,EksDeleteClusterOperator
 from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
 from datetime import datetime, timedelta
 
@@ -131,4 +131,9 @@ apply_ray_cluster_spec = BashOperator(
     dag=dag,
 )
 
-create_cluster >> update_kubeconfig >> check_install_helm >> add_kuberay_operator >> apply_ray_cluster_spec
+delete_cluster = EksDeleteClusterOperator(
+    task_id="delete_cluster",
+    cluster_name="RayCluster",
+)
+
+create_cluster >> update_kubeconfig >> check_install_helm >> add_kuberay_operator >> apply_ray_cluster_spec >> delete_cluster
