@@ -96,7 +96,8 @@ eksctl_create_cluster = BashOperator(
 """
 update_kubeconfig = BashOperator(
     task_id='update_kubeconfig',
-    bash_command='aws eks update-kubeconfig --region us-east-2 --name RayCluster --alias kuberay-profile',
+    #bash_command='aws eks update-kubeconfig --region us-east-2 --name RayCluster --alias kuberay-profile',
+    bash_command='eksctl utils write-kubeconfig --cluster=RayCluster --region=us-east-2 --profile=kuberay-profile',
     dag=dag,
 )
 
