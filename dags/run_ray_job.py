@@ -60,7 +60,6 @@ dag = DAG(
     'run_ray_job',
     default_args=default_args,
     description='Setup EKS cluster with eksctl and deploy KubeRay operator',
-    # Update the schedule to run daily
     schedule_interval='@daily',
 )
 
