@@ -78,6 +78,7 @@ eksctl_create_cluster = DockerOperator(
         --managed",
   api_version='auto',
   auto_remove=True,
+  docker_url='tcp://docker-proxy:2375',
   network_mode=None,
   tty=True,
   xcom_all=False,
