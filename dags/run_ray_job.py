@@ -79,14 +79,15 @@ dag = DAG(
 """
 
 # Create an instance of EksCreateClusterOperator
-create_cluster_task = EksCreateClusterOperator(
+create_cluster = EksCreateClusterOperator(
         cluster_name="RayCluster",
         cluster_role_arn="arn:aws:iam::771371893023:role/KubeRay_Data_Team",
         resources_vpc_config={
         'subnetIds': ['subnet-0046417cbc4917f77', 'subnet-022f9f8225972220c'],
         'securityGroupIds': ['sg-092e6e946ab0d4cd5']},
-        wait_for_completion=True,  # Set to False if you don't want to wait for the cluster creation to complete
-        region="us-east-2"  # Specify your desired region
+        wait_for_completion=True,
+        region="us-east-2",
+        dag = dag,
     )
 
 wait_for_cluster = BashOperator(
