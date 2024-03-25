@@ -94,11 +94,11 @@ create_cluster = EksCreateClusterOperator(
         dag = dag,
     )
 
-wait_for_cluster = BashOperator(
+"""wait_for_cluster = BashOperator(
     task_id='wait_for_cluster_ready',
     bash_command='kubectl wait --for=condition=Ready nodes --all --timeout=10m',
     dag=dag,
-)
+)"""
 
 update_kubeconfig = BashOperator(
     task_id='update_kubeconfig',
@@ -137,4 +137,4 @@ apply_ray_cluster_spec = BashOperator(
     dag=dag,
 )
 
-create_cluster >> wait_for_cluster >> update_kubeconfig >> check_install_helm >> add_kuberay_operator >> apply_ray_cluster_spec
+create_cluster >> update_kubeconfig >> check_install_helm >> add_kuberay_operator >> apply_ray_cluster_spec
