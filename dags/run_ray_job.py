@@ -32,7 +32,9 @@ from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
 from airflow.providers.amazon.aws.operators.eks import EksCreateClusterOperator,EksDeleteClusterOperator
 from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
+from airflow.providers.docker.operators.docker import DockerOperator
 from datetime import datetime, timedelta
+import os
 
 from airflow.models.connection import Connection
 
@@ -62,21 +64,43 @@ dag = DAG(
     schedule_interval='@daily',
 )
 
-create_cluster = BashOperator(
-    task_id='create_eks_cluster',
-    bash_command="""
-        docker run --rm -it public.ecr.aws/eksctl/eksctl \
-        eksctl create cluster \
-        --name my-eks-cluster \
+eksctl_create_cluster = DockerOperator(
+  task_id='eksctl_create_cluster',
+  image='public.ecr.aws/eksctl/eksctl',
+  container_name='eksctl',
+  command = "eksctl create cluster \
+        --name RayCluster \
         --region us-east-2 \
         --node-type m5.2xlarge \
         --nodes 2 \
         --nodes-min 1 \
         --nodes-max 3 \
-        --managed
-    """,
-    dag=dag,
+        --managed",
+  api_version='auto',
+  auto_remove=True,
+  network_mode=None,
+  tty=True,
+  xcom_all=False,
+  mount_tmp_dir=False,
+  environment=dict(os.environ),
+  dag = dag,
 )
+
+#create_cluster = BashOperator(
+#    task_id='create_eks_cluster',
+#    bash_command="""
+#        docker run --rm -it public.ecr.aws/eksctl/eksctl \
+#        eksctl create cluster \
+#        --name my-eks-cluster \
+#        --region us-east-2 \
+#        --node-type m5.2xlarge \
+#        --nodes 2 \
+#        --nodes-min 1 \
+#        --nodes-max 3 \
+#       --managed
+#    """,
+#    dag=dag,
+#)
 
 # Create an instance of EksCreateClusterOperator
 """create_cluster = EksCreateClusterOperator(
@@ -136,4 +160,4 @@ delete_cluster = EksDeleteClusterOperator(
     cluster_name="RayCluster",
 )
 
-create_cluster >> update_kubeconfig >> check_install_helm >> add_kuberay_operator >> apply_ray_cluster_spec >> delete_cluster
+eksctl_create_cluster >> update_kubeconfig >> check_install_helm >> add_kuberay_operator >> apply_ray_cluster_spec >> delete_cluster
