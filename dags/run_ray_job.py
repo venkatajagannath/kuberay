@@ -96,7 +96,7 @@ create_cluster = EksCreateClusterOperator(
 
 update_kubeconfig = BashOperator(
     task_id='update_kubeconfig',
-    bash_command='aws eks update-kubeconfig --region us-east-2 --name RayCluster',
+    bash_command='aws eks update-kubeconfig --region us-east-2 --name RayCluster --alias kuberay-profile',
     dag=dag,
 )
 
@@ -127,7 +127,7 @@ add_kuberay_operator = BashOperator(
 
 apply_ray_cluster_spec = BashOperator(
     task_id='apply_ray_cluster_spec',
-    bash_command='kubectl apply -f ./ray.yaml',
+    bash_command='kubectl --context=kuberay-profile apply -f ./ray.yaml',
     dag=dag,
 )
 
