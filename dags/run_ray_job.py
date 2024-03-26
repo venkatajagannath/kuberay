@@ -99,6 +99,7 @@ helm_install = BashOperator(
 
 def print_working_directory():
     print("Current Working Directory:", os.getcwd())
+    print("Current Directories:", os.listdir())
 
 get_cwd_task = PythonOperator(
         task_id='print_cwd',
