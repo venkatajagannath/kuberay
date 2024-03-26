@@ -15,14 +15,14 @@ with dag(
     tags=["example"],
 ) as dag:
     
-    start_cluster = RayClusterExecutor()
+    start_cluster = RayClusterOperator()
 
 
     submit_job = SubmitRayJob()
 
 
 
-    delete_cluster = RayClusterExecutor()
+    delete_cluster = RayClusterOperator()
 
 
 
@@ -97,6 +97,14 @@ helm_install = BashOperator(
     dag = dag,
 )
 
+def print_working_directory():
+    print("Current Working Directory:", os.getcwd())
+
+get_cwd_task = PythonOperator(
+        task_id='print_cwd',
+        python_callable=print_working_directory
+    )
+
 apply_ray_cluster_spec = BashOperator(
     task_id='apply_ray_cluster_spec',
     bash_command='kubectl apply -f ./dags/ray.yaml',
@@ -111,4 +119,4 @@ eksctl_delete_cluster = BashOperator(
     dag=dag,
 )
 
-eksctl_create_cluster >> generate_kubeconfig >> helm_install >> apply_ray_cluster_spec >> eksctl_delete_cluster
+eksctl_create_cluster >> generate_kubeconfig >> helm_install >> get_cwd_task >> apply_ray_cluster_spec >> eksctl_delete_cluster
