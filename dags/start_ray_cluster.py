@@ -37,7 +37,8 @@ ray_cluster = RayClusterOperator(eks_cluster_name="RayCluster",
                                  eks_max_nodes=3,
                                  eks_nodes=2,
                                  eks_namespace="ray",
-                                 ray_cluster_yaml="/usr/local/airflow/dags/ray.yaml")
+                                 ray_cluster_yaml="/usr/local/airflow/dags/ray.yaml",
+                                 dag = dag,)
 
 ray_cluster
 
