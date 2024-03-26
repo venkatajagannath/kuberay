@@ -119,7 +119,7 @@ kubeconfig_path = '/tmp/kubeconfig_raycluster'
 generate_kubeconfig = BashOperator(
         task_id='generate_kubeconfig',
         bash_command=f"""
-        eksctl utils write-kubeconfig --cluster=RayCluster --region=us-east-2 --kubeconfig={kubeconfig_path}
+        eksctl utils write-kubeconfig --cluster=RayCluster --region=us-east-2
         """,
         dag = dag,
     )
@@ -128,9 +128,9 @@ generate_kubeconfig = BashOperator(
 helm_install = BashOperator(
     task_id='helm_install',
     bash_command=f"""
-    helm repo add kuberay https://ray-project.github.io/kuberay-helm/ --kubeconfig {kubeconfig_path} &&
-    helm repo update --kubeconfig {kubeconfig_path} &&
-    helm install kuberay-operator kuberay/kuberay-operator --version 1.0.0 --kubeconfig {kubeconfig_path}
+    helm repo add kuberay https://ray-project.github.io/kuberay-helm/&&
+    helm repo update &&
+    helm install kuberay-operator kuberay/kuberay-operator --version 1.0.0
     """,
     dag = dag,
 )
