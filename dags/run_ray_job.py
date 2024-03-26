@@ -30,9 +30,6 @@ with dag(
 
 from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
-from airflow.providers.amazon.aws.operators.eks import EksCreateClusterOperator,EksDeleteClusterOperator
-from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
-from airflow.providers.docker.operators.docker import DockerOperator
 from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta
 import os
