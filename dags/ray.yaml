@@ -1,5 +1,5 @@
 apiVersion: ray.io/v1alpha1
-kind: RayCluster
+kind: RayCluster1
 metadata:
   name: raycluster-complete
 spec:
