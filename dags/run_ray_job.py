@@ -32,8 +32,8 @@ from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta
-import os
-import sh
+#import os
+#import sh
 
 from airflow.models.connection import Connection
 
