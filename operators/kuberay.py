@@ -1,7 +1,8 @@
 from airflow.models import BaseOperator, BaseOperatorLink, XCom
-from airflow.exceptions import AirflowException, AirflowSkipException
+from airflow.exceptions import AirflowException
 from airflow.hooks.subprocess import SubprocessHook
-import yaml
+from airflow.utils.operator_helpers import context_to_airflow_vars
+from airflow.utils.context import Context
 
 import os
 import shutil
@@ -10,16 +11,6 @@ from functools import cached_property
 from typing import TYPE_CHECKING, Container, Sequence, cast
 import logging
 import tempfile
-
-from airflow.exceptions import AirflowException, AirflowSkipException
-from airflow.hooks.subprocess import SubprocessHook
-from airflow.models.baseoperator import BaseOperator
-from airflow.utils.operator_helpers import context_to_airflow_vars
-from airflow.utils.types import ArgNotSet
-
-if TYPE_CHECKING:
-    from airflow.models.taskinstance import TaskInstance
-    from airflow.utils.context import Context
 
 
 class RayClusterOperator(BaseOperator):
@@ -195,10 +186,6 @@ class RayClusterOperator(BaseOperator):
         self.delete_eks_cluster(env)
 
         return
-
-
-
-
 
 
 class SubmitRayJob(BaseOperator):
