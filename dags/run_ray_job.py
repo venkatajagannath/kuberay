@@ -33,8 +33,10 @@ from airflow.operators.bash_operator import BashOperator
 from airflow.providers.amazon.aws.operators.eks import EksCreateClusterOperator,EksDeleteClusterOperator
 from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
 from airflow.providers.docker.operators.docker import DockerOperator
+from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta
 import os
+import sh
 
 from airflow.models.connection import Connection
 
@@ -77,43 +79,6 @@ eksctl_create_cluster = BashOperator(
     """,
     dag=dag,
 )
-
-# Create an instance of EksCreateClusterOperator
-"""eksctl_create_cluster = EksCreateClusterOperator(
-        task_id='create_eks_cluster',
-        cluster_name="RayCluster",
-        cluster_role_arn="arn:aws:iam::771371893023:role/KubeRay_Data_Team",
-        nodegroup_name = "KubeRay",
-        nodegroup_role_arn='arn:aws:iam::771371893023:role/KubeRay_Data_Team',
-        resources_vpc_config={
-        'subnetIds': ['subnet-0e184b23aec13ff41', 'subnet-0c13f543fea1e5eb4','subnet-0099de4f8ad7a42e1','subnet-026d89c844dec4b2a'],
-        'securityGroupIds': ['sg-0b16a58d6c5446e47']},
-        wait_for_completion=True,
-        region="us-east-2",
-        aws_conn_id = conn.conn_id,
-        dag = dag,
-    )
-
-update_kubeconfig = BashOperator(
-    task_id='update_kubeconfig',
-    #bash_command='aws eks update-kubeconfig --region us-east-2 --name RayCluster --alias kuberay-profile',
-    bash_command='eksctl utils write-kubeconfig --cluster=RayCluster --region=us-east-2 --kubeconfig=$(mktemp /tmp/kubeconfig-RayCluster.XXXXXX)',
-    dag=dag,
-)
-
-add_kuberay_operator = BashOperator(
-    task_id='add_kuberay_operator',
-    bash_command="
-        helm repo add kuberay https://ray-project.github.io/kuberay-helm/
-        helm repo update
-        helm install kuberay-operator kuberay/kuberay-operator --version 1.0.0
-    ",
-    dag=dag,
-)
-"""
-
-# Define a static path for the kubeconfig to ensure accessibility across tasks
-kubeconfig_path = '/tmp/kubeconfig_raycluster'
 
 # Task to generate kubeconfig
 generate_kubeconfig = BashOperator(
