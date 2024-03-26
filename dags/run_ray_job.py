@@ -99,7 +99,6 @@ helm_install = BashOperator(
 
 def print_working_directory():
     print("Current Working Directory:", os.getcwd())
-    print("Current Directories:", os.listdir())
 
 get_cwd_task = PythonOperator(
         task_id='print_cwd',
@@ -112,12 +111,25 @@ apply_ray_cluster_spec = BashOperator(
     dag=dag,
 )
 
-eksctl_delete_cluster = BashOperator(
-    task_id='eksctl_delete_cluster',
-    bash_command="""
-        eksctl delete cluster --name RayCluster --region us-east-2
-    """,
-    dag=dag,
+list_namespaces = BashOperator(
+    task_id = "list_namespaces",
+    bash_command = 'kubectl get namespaces',
+    dag = dag,
 )
 
-eksctl_create_cluster >> generate_kubeconfig >> helm_install >> get_cwd_task >> apply_ray_cluster_spec >> eksctl_delete_cluster
+port_forward = BashOperator(
+    task_id = "port_forwarding",
+    bash_command = 'kubectl port-forward svc/RayCluster 8265:8265 10001:10001 &',
+    dag = dag,
+)
+
+#eksctl_delete_cluster = BashOperator(
+#    task_id='eksctl_delete_cluster',
+#    bash_command="""
+#        eksctl delete cluster --name RayCluster --region us-east-2
+#    """,
+#    dag=dag,
+#)
+
+eksctl_create_cluster >> generate_kubeconfig >> helm_install >> get_cwd_task >> apply_ray_cluster_spec >> list_namespaces >> port_forward
+
