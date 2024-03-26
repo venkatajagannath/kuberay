@@ -66,7 +66,7 @@ eksctl_create_cluster = BashOperator(
     task_id='create_eks_cluster',
     bash_command="""
         eksctl create cluster \
-        --name RayCluster1 \
+        --name RayCluster \
         --region us-east-2 \
         --node-type m5.2xlarge \
         --nodes 2 \
@@ -81,7 +81,7 @@ eksctl_create_cluster = BashOperator(
 generate_kubeconfig = BashOperator(
         task_id='generate_kubeconfig',
         bash_command=f"""
-        eksctl utils write-kubeconfig --cluster=RayCluster1 --region=us-east-2
+        eksctl utils write-kubeconfig --cluster=RayCluster --region=us-east-2
         """,
         dag = dag,
     )
@@ -114,7 +114,7 @@ apply_ray_cluster_spec = BashOperator(
 eksctl_delete_cluster = BashOperator(
     task_id='eksctl_delete_cluster',
     bash_command="""
-        eksctl delete cluster --name RayCluster1 --region us-east-2
+        eksctl delete cluster --name RayCluster --region us-east-2
     """,
     dag=dag,
 )
