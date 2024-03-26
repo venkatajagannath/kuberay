@@ -62,9 +62,9 @@ dag = DAG(
     schedule_interval='@daily',
 )
 
-eksctl_create_cluster = BashOperator(
+"""eksctl_create_cluster = BashOperator(
     task_id='create_eks_cluster',
-    bash_command="""
+    bash_command="
         eksctl create cluster \
         --name RayCluster \
         --region us-east-2 \
@@ -73,37 +73,67 @@ eksctl_create_cluster = BashOperator(
         --nodes-min 1 \
         --nodes-max 3 \
        --managed
-    """,
+    ",
+    dag=dag,
+)"""
+
+def create_eks_cluster():
+    sh.eksctl("create", "cluster", 
+              "--name", "RayCluster", 
+              "--region", "us-east-2", 
+              "--node-type", "m5.2xlarge", 
+              "--nodes", "2", 
+              "--nodes-min", "1", 
+              "--nodes-max", "3", 
+              "--managed")
+
+eksctl_create_cluster = PythonOperator(
+    task_id='create_eks_cluster',
+    python_callable=create_eks_cluster,
     dag=dag,
 )
 
+def generate_kubeconfig():
+    sh.eksctl("utils", "write-kubeconfig", "--cluster=RayCluster", "--region=us-east-2")
+
+
 # Task to generate kubeconfig
-generate_kubeconfig = BashOperator(
+"""generate_kubeconfig = BashOperator(
         task_id='generate_kubeconfig',
-        bash_command=f"""
+        bash_command=f"
         eksctl utils write-kubeconfig --cluster=RayCluster --region=us-east-2
-        """,
+        ",
         dag = dag,
-    )
+    )"""
+
+generate_kubeconfig = PythonOperator(
+    task_id='generate_kubeconfig',
+    python_callable=generate_kubeconfig,
+    dag=dag,
+)
+
+def helm_install():
+    sh.helm("repo", "add", "kuberay", "https://ray-project.github.io/kuberay-helm/")
+    sh.helm("repo", "update")
+    sh.helm("install", "kuberay-operator", "kuberay/kuberay-operator", "--version", "1.0.0", "--create-namespace")
+
 
 # Task to install using Helm
-helm_install = BashOperator(
+"""helm_install = BashOperator(
     task_id='helm_install',
-    bash_command=f"""
+    bash_command=f"
     helm repo add kuberay https://ray-project.github.io/kuberay-helm/&&
     helm repo update &&
     helm install kuberay-operator kuberay/kuberay-operator --version 1.0.0 --create-namespace
-    """,
+    ",
     dag = dag,
+)"""
+
+helm_install = PythonOperator(
+    task_id='helm_install',
+    python_callable=helm_install,
+    dag=dag,
 )
-
-def print_working_directory():
-    print("Current Working Directory:", os.getcwd())
-
-get_cwd_task = PythonOperator(
-        task_id='print_cwd',
-        python_callable=print_working_directory
-    )
 
 apply_ray_cluster_spec = BashOperator(
     task_id='apply_ray_cluster_spec',
@@ -131,5 +161,5 @@ port_forward = BashOperator(
 #    dag=dag,
 #)
 
-eksctl_create_cluster >> generate_kubeconfig >> helm_install >> get_cwd_task >> apply_ray_cluster_spec >> list_namespaces >> port_forward
+eksctl_create_cluster >> generate_kubeconfig >> helm_install >> apply_ray_cluster_spec >> list_namespaces >> port_forward
 
