@@ -99,7 +99,7 @@ helm_install = BashOperator(
 
 apply_ray_cluster_spec = BashOperator(
     task_id='apply_ray_cluster_spec',
-    bash_command='kubectl apply -f ./ray.yaml',
+    bash_command='kubectl apply -f ./dags/ray.yaml',
     dag=dag,
 )
 
