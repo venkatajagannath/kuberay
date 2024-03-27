@@ -3,7 +3,7 @@ kind: RayCluster
 metadata:
   name: raycluster-complete
 spec:
-  rayVersion: "2.9.3"
+  rayVersion: "2.10.0"
   enableInTreeAutoscaling: true
   headGroupSpec:
     serviceType: ClusterIP
