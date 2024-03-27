@@ -1,6 +1,6 @@
 
 from airflow import DAG
-from .operators.kuberay import RayClusterOperator
+from operators.kuberay import RayClusterOperator
 from datetime import datetime, timedelta
 
 from airflow.models.connection import Connection
