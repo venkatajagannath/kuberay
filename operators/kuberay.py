@@ -15,6 +15,10 @@ from typing import TYPE_CHECKING, Container, Sequence, cast
 import logging
 import tempfile
 
+import logging
+logging.basicConfig(level=logging.DEBUG)
+logging.debug("Importing kuberay.py")
+
 
 class RayClusterOperator(BaseOperator):
 
