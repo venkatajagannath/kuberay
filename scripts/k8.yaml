@@ -1,0 +1,16 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: RayCluster
+  region: us-east-2
+
+managedNodeGroups:
+  - name: ng-1
+    instanceType: m5.2xlarge
+    desiredCapacity: 2
+    minSize: 1
+    maxSize: 3
+    volumeSize: 20 # Default volume size in GB (optional, modify as needed)
+    ssh:
+      allow: true # This will use the default SSH key on your system (optional)
