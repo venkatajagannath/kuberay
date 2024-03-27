@@ -138,7 +138,7 @@ class RayClusterOperator(BaseOperator):
         --managed
         """
         result = self.execute_bash_command(command,env)
-        logging.info(result.output)
+        logging.info(result)
 
         return result
 
@@ -147,7 +147,7 @@ class RayClusterOperator(BaseOperator):
         command = f"eksctl utils write-kubeconfig --cluster={self.eks_cluster_name} --region={self.eks_region}"
         
         result = self.execute_bash_command(command, env)
-        logging.info(result.output)
+        logging.info(result)
         return result
 
     def create_ray_cluster(self, env: dict):
@@ -155,7 +155,7 @@ class RayClusterOperator(BaseOperator):
         command = f"kubectl apply -f {self.ray_cluster_yaml}"
         
         result = self.execute_bash_command(command, env)
-        logging.info(result.output)
+        logging.info(result)
         return result
 
     def add_kuberay_operator(self, env: dict):
@@ -168,7 +168,7 @@ class RayClusterOperator(BaseOperator):
         """
         
         result = self.execute_bash_command(helm_commands, env)
-        logging.info(result.output)
+        logging.info(result)
         return result
     
     def delete_eks_cluster(self, env: dict):
@@ -176,7 +176,7 @@ class RayClusterOperator(BaseOperator):
         command = f"eksctl delete cluster --name={self.eks_cluster_name} --region={self.eks_region}"
         
         result = self.execute_bash_command(command, env)
-        logging.info(result.output)
+        logging.info(result)
         return result
 
     def execute(self, context: Context):
