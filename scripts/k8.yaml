@@ -27,7 +27,6 @@ managedNodeGroups:
       allow: false
     privateNetworking: true # Nodes will only get private IPs
     securityGroups:
-      withShared: true # Use shared security groups in addition to specified SGs
       attachIDs: ["sg-0b16a58d6c5446e47"] # Attach existing security group(s) to the node group
 
 cloudWatch:
