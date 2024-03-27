@@ -24,7 +24,7 @@ default_args = {
 }
 
 dag = DAG(
-    'run_ray_job',
+    'start_ray_cluster',
     default_args=default_args,
     description='Setup EKS cluster with eksctl and deploy KubeRay operator',
     schedule_interval='@daily',
