@@ -150,14 +150,6 @@ class RayClusterOperator(BaseOperator):
         logging.info(result)
         return result
 
-    def create_ray_cluster(self, env: dict):
-
-        command = f"kubectl apply -f {self.ray_cluster_yaml}"
-        
-        result = self.execute_bash_command(command, env)
-        logging.info(result)
-        return result
-
     def add_kuberay_operator(self, env: dict):
         # Helm commands to add repo, update, and install KubeRay operator
         helm_commands = f"""
@@ -168,6 +160,14 @@ class RayClusterOperator(BaseOperator):
         """
         
         result = self.execute_bash_command(helm_commands, env)
+        logging.info(result)
+        return result
+    
+    def create_ray_cluster(self, env: dict):
+
+        command = f"kubectl apply -f {self.ray_cluster_yaml} -n {self.eks_namespace}"
+        
+        result = self.execute_bash_command(command, env)
         logging.info(result)
         return result
     
