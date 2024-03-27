@@ -24,44 +24,41 @@ class RayClusterOperator(BaseOperator):
 
 
     def __init__(self,*,
-                 eks_cluster_name: str = None,
-                 eks_region: str = None,
-                 eks_node_type: str = None,
-                 eks_nodes: int = None,
-                 eks_min_nodes: int = None,
-                 eks_max_nodes: int = None,
-                 eks_namespace: str = None,
+                 cluster_name: str = None,
+                 region: str = None,
+                 eks_k8_spec: str = None,
+                 ray_namespace: str = None,
                  ray_cluster_yaml : str = None,
                  eks_delete_cluster: bool = False,
                  env: dict = None,
                  **kwargs,):
         
         super().__init__(**kwargs)
-        self.eks_cluster_name = eks_cluster_name
-        self.eks_region = eks_region
-        self.eks_node_type = eks_node_type
-        self.eks_nodes = str(eks_nodes)
-        self.eks_min_nodes = str(eks_min_nodes)
-        self.eks_max_nodes = str(eks_max_nodes)
-        self.eks_namespace = eks_namespace
+        self.cluster_name = cluster_name
+        self.region = region
+        self.ray_namespace = ray_namespace
         self.eks_delete_cluster = eks_delete_cluster
         self.env = env
+        self.output_encoding: str = "utf-8"
+        self.cwd = tempfile.mkdtemp(prefix="tmp")
 
-        if not self.eks_cluster_name:
+        if not self.cluster_name:
             raise AirflowException("EKS cluster name is required.")
-        if not self.eks_region:
+        if not self.region:
             raise AirflowException("EKS region is required.")
-        if not self.eks_node_type:
-            raise AirflowException("EKS node type is required.")
-        if not self.eks_nodes:
-            raise AirflowException("EKS number of nodes is required.")
-        if not self.eks_min_nodes:
-            raise AirflowException("EKS minimum number of nodes is required.")
-        if not self.eks_max_nodes:
-            raise AirflowException("EKS maximum number of nodes is required.")
-        if not self.eks_namespace:
+        if not self.ray_namespace:
             raise AirflowException("EKS namespace is required.")
         
+        # Check if k8 cluster spec is provided
+        if not eks_k8_spec:
+            raise AirflowException("K8 Cluster spec is required")
+        elif not os.path.isfile(eks_k8_spec):
+            raise AirflowException(f"The specified K8 cluster YAML file does not exist: {eks_k8_spec}")
+        elif not eks_k8_spec.endswith('.yaml') and not eks_k8_spec.endswith('.yml'):
+            raise AirflowException("The specified K8 cluster YAML file must have a .yaml or .yml extension.")
+        else:
+            self.eks_k8_spec = eks_k8_spec
+
         # Check if ray cluster spec is provided
         if not ray_cluster_yaml:
             raise AirflowException("Ray Cluster spec is required")
@@ -71,9 +68,6 @@ class RayClusterOperator(BaseOperator):
             raise AirflowException("The specified Ray cluster YAML file must have a .yaml or .yml extension.")
         else:
             self.ray_cluster_yaml = ray_cluster_yaml
-
-        self.output_encoding: str = "utf-8"
-        self.cwd = tempfile.mkdtemp(prefix="tmp")
 
     def __del__(self):
         if self.eks_delete_cluster:
@@ -128,14 +122,7 @@ class RayClusterOperator(BaseOperator):
     def create_eks_cluster(self,env : dict):
 
         command = f"""
-        eksctl create cluster \
-        --name {self.eks_cluster_name} \
-        --region {self.eks_region} \
-        --node-type {self.eks_node_type} \
-        --nodes {self.eks_nodes} \
-        --nodes-min {self.eks_min_nodes} \
-        --nodes-max {self.eks_max_nodes} \
-        --managed
+        eksctl create cluster -f {self.eks_k8_spec}
         """
         result = self.execute_bash_command(command,env)
         logging.info(result)
@@ -144,7 +131,7 @@ class RayClusterOperator(BaseOperator):
 
     def update_kubeconfig(self, env: dict):
 
-        command = f"eksctl utils write-kubeconfig --cluster={self.eks_cluster_name} --region={self.eks_region}"
+        command = f"eksctl utils write-kubeconfig --cluster={self.cluster_name} --region={self.region}"
         
         result = self.execute_bash_command(command, env)
         logging.info(result)
@@ -156,7 +143,7 @@ class RayClusterOperator(BaseOperator):
         helm repo add kuberay https://ray-project.github.io/kuberay-helm/ && \
         helm repo update && \
         helm install kuberay-operator kuberay/kuberay-operator \
-        --version 1.0.0 --create-namespace --namespace {self.eks_namespace}
+        --version 1.0.0 --create-namespace --namespace {self.ray_namespace}
         """
         
         result = self.execute_bash_command(helm_commands, env)
@@ -165,7 +152,7 @@ class RayClusterOperator(BaseOperator):
     
     def create_ray_cluster(self, env: dict):
 
-        command = f"kubectl apply -f {self.ray_cluster_yaml} -n {self.eks_namespace}"
+        command = f"kubectl apply -f {self.ray_cluster_yaml} -n {self.ray_namespace}"
         
         result = self.execute_bash_command(command, env)
         logging.info(result)
@@ -173,7 +160,7 @@ class RayClusterOperator(BaseOperator):
     
     def delete_eks_cluster(self, env: dict):
 
-        command = f"eksctl delete cluster --name={self.eks_cluster_name} --region={self.eks_region}"
+        command = f"eksctl delete cluster --name={self.cluster_name} --region={self.region}"
         
         result = self.execute_bash_command(command, env)
         logging.info(result)

@@ -31,14 +31,12 @@ dag = DAG(
 )
 
 ray_cluster = RayClusterOperator(task_id="RayClusterOperator",
-                                 eks_cluster_name="RayCluster",
-                                 eks_region="us-east-2",
-                                 eks_node_type="m5.2xlarge",
-                                 eks_min_nodes=1,
-                                 eks_max_nodes=3,
-                                 eks_nodes=2,
-                                 eks_namespace="ray",
-                                 ray_cluster_yaml="/usr/local/airflow/dags/ray.yaml",
+                                 cluster_name="RayCluster",
+                                 region="us-east-2",
+                                 eks_k8_spec="/usr/local/airflow/scripts/k8.yaml",
+                                 ray_namespace="ray",
+                                 ray_cluster_yaml="/usr/local/airflow/scripts/ray.yaml",
+                                 eks_delete_cluster=False,
                                  env = {},
                                  dag = dag,)
 
