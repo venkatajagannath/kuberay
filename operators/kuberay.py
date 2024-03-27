@@ -164,7 +164,7 @@ class RayClusterOperator(BaseOperator):
         helm repo add kuberay https://ray-project.github.io/kuberay-helm/ && \
         helm repo update && \
         helm install kuberay-operator kuberay/kuberay-operator \
-        --version 1.0.0 --create-namespace --namespace {self.namespace}
+        --version 1.0.0 --create-namespace --namespace {self.eks_namespace}
         """
         
         result = self.execute_bash_command(helm_commands, env)
