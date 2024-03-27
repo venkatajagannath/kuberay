@@ -17,8 +17,6 @@ import tempfile
 
 import logging
 logging.basicConfig(level=logging.DEBUG)
-logging.debug("Importing kuberay.py")
-
 
 class RayClusterOperator(BaseOperator):
 
@@ -182,17 +180,55 @@ class RayClusterOperator(BaseOperator):
 
         self.create_ray_cluster(env)
 
-        self.delete_eks_cluster(env)
-
         return
 
+from ray.job_submission import JobSubmissionClient, JobStatus
+import time
 
 class SubmitRayJob(BaseOperator):
-    def __init__(self):
-        pass
+
+    def __init__(self,*,
+                 ip_address: str = None,
+                 portno: str = None,
+                 entrypoint: str = None,
+                 wd: str = None,
+                 env: dict = None,
+                 **kwargs,):
+        
+        super().__init__(**kwargs)
+        self.ip = ip_address
+        self.portno = portno
+        self.entrypoint = entrypoint
+        self.wd = wd,
+        self.client = JobSubmissionClient("http://{self.ip}:{portno}")
+        self.job_id = None
+        self.status_to_wait_for = {JobStatus.SUCCEEDED, JobStatus.STOPPED, JobStatus.FAILED}
+    
+    def __del__(self):
+        self.client.delete_job(self.job_id)
+        return self.client.tail_job_logs(self.job_id)
+
+    def wait_until_status(self, timeout_seconds=5):
+        start = time.time()
+        while time.time() - start <= timeout_seconds:
+            status = self.client.get_job_status(self.job_id)
+            logs = self.client.get_job_logs(self.job_id)
+            print(logs)
+            print(f"status: {status}")
+            if status in self.status_to_wait_for:
+                break
+            time.sleep(1)
 
     def execute(self):
-        pass
+
+        job_id = self.client.submit_job(
+            entrypoint= self.entrypoint,
+            runtime_env={"working_dir": self.wd})
+        self.job_id = job_id
+        
+        self.wait_until_status()
+        
+        return self.client.tail_job_logs(job_id)
 
 
 class DeployRayService(BaseOperator):
