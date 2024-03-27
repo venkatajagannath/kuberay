@@ -29,6 +29,7 @@ class RayClusterOperator(BaseOperator):
                  eks_namespace: str = None,
                  ray_cluster_yaml : str = None,
                  eks_delete_cluster: bool = False,
+                 env: dict = None,
                  **kwargs,):
         
         super().__init__(**kwargs)
@@ -40,6 +41,7 @@ class RayClusterOperator(BaseOperator):
         self.eks_max_nodes = str(eks_max_nodes)
         self.eks_namespace = eks_namespace
         self.eks_delete_cluster = eks_delete_cluster
+        self.env = env
 
         if not self.eks_cluster_name:
             raise AirflowException("EKS cluster name is required.")
