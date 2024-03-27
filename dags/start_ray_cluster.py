@@ -30,7 +30,8 @@ dag = DAG(
     schedule_interval='@daily',
 )
 
-ray_cluster = RayClusterOperator(eks_cluster_name="RayCluster",
+ray_cluster = RayClusterOperator(task_id="RayClusterOperator",
+                                 eks_cluster_name="RayCluster",
                                  eks_region="us-east-2",
                                  eks_node_type="m5.2xlarge",
                                  eks_min_nodes=1,
