@@ -14,7 +14,7 @@ import tempfile
 
 
 class RayClusterOperator(BaseOperator):
-    def __init__(self,
+    def __init__(self,*,
                  eks_cluster_name: str = None,
                  eks_region: str = None,
                  eks_node_type: str = None,
@@ -23,8 +23,10 @@ class RayClusterOperator(BaseOperator):
                  eks_max_nodes: int = None,
                  eks_namespace: str = None,
                  ray_cluster_yaml : str = None,
-                 eks_delete_cluster: bool = False):
+                 eks_delete_cluster: bool = False,
+                 **kwargs,):
         
+        super().__init__(**kwargs)
         self.eks_cluster_name = eks_cluster_name
         self.eks_region = eks_region
         self.eks_node_type = eks_node_type
