@@ -5,30 +5,12 @@ metadata:
   name: RayCluster
   region: us-east-2
 
-vpc:
-  id: "vpc-0341f344b1f2ee417" # Specify your VPC ID here
-  subnets:
-    private:
-      us-east-2a: { id: "subnet-0c13f543fea1e5eb4" } # Specify your subnet IDs here
-      us-east-2b: { id: "subnet-026d89c844dec4b2a" }
-    public:
-      us-east-2a: { id: "subnet-0e184b23aec13ff41" }
-      us-east-2b: { id: "subnet-0099de4f8ad7a42e1" }
-  securityGroup: "sg-0b16a58d6c5446e47" # Specify a custom VPC security group (optional)
-
 managedNodeGroups:
   - name: ng-1
     instanceType: m5.2xlarge
     desiredCapacity: 2
     minSize: 1
     maxSize: 3
-    volumeSize: 20
+    volumeSize: 20 # Default volume size in GB (optional, modify as needed)
     ssh:
-      allow: false
-    privateNetworking: true # Nodes will only get private IPs
-    securityGroups:
-      attachIDs: ["sg-0b16a58d6c5446e47"] # Attach existing security group(s) to the node group
-
-cloudWatch:
-  clusterLogging:
-    enableTypes: ["all"]
+      allow: false # This will use the default SSH key on your system (optional)
