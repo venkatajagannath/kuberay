@@ -53,14 +53,14 @@ class RayClusterOperator(BaseOperator):
             raise AirflowException("EKS namespace is required.")
         
         # Check if k8 cluster spec is provided
-        if not eks_k8_spec:
+        """if not eks_k8_spec:
             raise AirflowException("K8 Cluster spec is required")
         elif not os.path.isfile(eks_k8_spec):
             raise AirflowException(f"The specified K8 cluster YAML file does not exist: {eks_k8_spec}")
         elif not eks_k8_spec.endswith('.yaml') and not eks_k8_spec.endswith('.yml'):
             raise AirflowException("The specified K8 cluster YAML file must have a .yaml or .yml extension.")
         else:
-            self.eks_k8_spec = eks_k8_spec
+            self.eks_k8_spec = eks_k8_spec"""
 
         # Check if ray cluster spec is provided
         if not ray_cluster_yaml:
@@ -176,8 +176,6 @@ class RayClusterOperator(BaseOperator):
         if self.eks_delete_cluster:
             self.delete_eks_cluster(env)
             return
-        
-        self.create_eks_cluster(env)
         
         self.update_kubeconfig(env)
 

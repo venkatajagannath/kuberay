@@ -9,6 +9,7 @@ from airflow.providers.amazon.aws.operators.eks import (
  EksDeleteClusterOperator,
  EksPodOperator,
 )
+from operators.kuberay import RayClusterOperator
 from airflow.utils.task_group import TaskGroup
 
 # Replace the values below with the desired cluster and nodegroup names
@@ -34,7 +35,7 @@ NODEGROUP_ROLE_ARN = "arn:aws:iam::771371893023:role/KubeRay_Data_Team"
 # Replace the subnet IDs with the subnet IDs in your VPC
 # Remember that they need to be in different availability zones
 # If you need to create a VPC, follow the steps here: https://docs.aws.amazon.com/eks/latest/userguide/create-public-private-vpc.html
-SUBNET_IDS = ["subnet-0c2203a5541163b91", "subnet-0bdedabbfff5dcc85"]
+SUBNET_IDS = ["subnet-0c2203a5541163b91","subnet-0bdedabbfff5dcc85","subnet-018b89961bab2b42f","subnet-0eb797cf170043406"]
 
 # On Astro, we enforce IMDSv2 for security reasons
 # To enable IMDSv2, you need to create a launch template with the MetadataOptions enabled
@@ -88,7 +89,18 @@ with DAG(
 
         setup_tasks = create_launch_template >> create_cluster
 
-        start_pod = EksPodOperator(
+        ray_cluster_setup = RayClusterOperator(
+                                task_id="RayClusterOperator",
+                                 cluster_name="RayCluster",
+                                 region="us-east-2",
+                                 eks_k8_spec="/usr/local/airflow/scripts/k8.yaml",
+                                 ray_namespace="ray",
+                                 ray_cluster_yaml="/usr/local/airflow/scripts/ray.yaml",
+                                 eks_delete_cluster=False,
+                                 env = {},
+                                 dag = dag,)
+
+        """start_pod = EksPodOperator(
             task_id="start_pod",
             pod_name="test_pod",
             cluster_name="my-cluster",
@@ -97,7 +109,7 @@ with DAG(
             labels={"demo": "hello_world"},
             region=AWS_REGION,
             aws_conn_id=AWS_CONN_ID,
-        )
+        )"""
 
     """with TaskGroup("teardown_cluster") as teardown:
 
@@ -133,5 +145,5 @@ with DAG(
     #create_cluster >> delete_nodegroup_and_cluster
 
     # task dependencies
-    setup_tasks >> start_pod #>> teardown_tasks
+    setup_tasks >> ray_cluster_setup #>> start_pod #>> teardown_tasks
 
