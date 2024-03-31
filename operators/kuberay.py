@@ -6,6 +6,9 @@ from airflow.exceptions import AirflowException
 from airflow.hooks.subprocess import SubprocessHook
 from airflow.utils.operator_helpers import context_to_airflow_vars
 from airflow.utils.context import Context
+from airflow.utils.decorators import apply_defaults
+from airflow.exceptions import AirflowException
+from airflow.decorators import task
 
 import os
 import shutil
@@ -14,6 +17,8 @@ from functools import cached_property
 from typing import TYPE_CHECKING, Container, Sequence, cast
 import logging
 import tempfile
+from ray.job_submission import JobSubmissionClient, JobStatus
+import time
 
 import logging
 logging.basicConfig(level=logging.DEBUG)
@@ -182,8 +187,158 @@ class RayClusterOperator(BaseOperator):
 
         return
 
-from ray.job_submission import JobSubmissionClient, JobStatus
-import time
+class RayClusterTaskOperator(BaseOperator):
+    @apply_defaults
+    def __init__(self, cluster_name: str, region: str, eks_k8_spec: str, ray_namespace: str, ray_cluster_yaml: str, eks_delete_cluster: bool = False, env: dict = None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.cluster_name = cluster_name
+        self.region = region
+        self.eks_k8_spec = eks_k8_spec
+        self.ray_namespace = ray_namespace
+        self.ray_cluster_yaml = ray_cluster_yaml
+        self.eks_delete_cluster = eks_delete_cluster
+        self.env = env or {}
+
+        if not self.cluster_name:
+            raise AirflowException("EKS cluster name is required.")
+        if not self.region:
+            raise AirflowException("EKS region is required.")
+        if not self.ray_namespace:
+            raise AirflowException("EKS namespace is required.")
+        
+        # Check if k8 cluster spec is provided
+        if not eks_k8_spec:
+            raise AirflowException("K8 Cluster spec is required")
+        elif not os.path.isfile(eks_k8_spec):
+            raise AirflowException(f"The specified K8 cluster YAML file does not exist: {eks_k8_spec}")
+        elif not eks_k8_spec.endswith('.yaml') and not eks_k8_spec.endswith('.yml'):
+            raise AirflowException("The specified K8 cluster YAML file must have a .yaml or .yml extension.")
+        else:
+            self.eks_k8_spec = eks_k8_spec
+
+        # Check if ray cluster spec is provided
+        if not ray_cluster_yaml:
+            raise AirflowException("Ray Cluster spec is required")
+        elif not os.path.isfile(ray_cluster_yaml):
+            raise AirflowException(f"The specified Ray cluster YAML file does not exist: {ray_cluster_yaml}")
+        elif not ray_cluster_yaml.endswith('.yaml') and not ray_cluster_yaml.endswith('.yml'):
+            raise AirflowException("The specified Ray cluster YAML file must have a .yaml or .yml extension.")
+        else:
+            self.ray_cluster_yaml = ray_cluster_yaml
+
+    @cached_property
+    def subprocess_hook(self):
+        """Returns hook for running the bash command."""
+        return SubprocessHook()
+
+    def get_env(self, context):
+        """Build the set of environment variables to be exposed for the bash command."""
+        system_env = os.environ.copy()
+        env = self.env
+        if env is None:
+            env = system_env
+        else:
+            system_env.update(env)
+            env = system_env
+
+        airflow_context_vars = context_to_airflow_vars(context, in_env_var_format=True)
+        self.log.debug(
+            "Exporting env vars: %s",
+            " ".join(f"{k}={v!r}" for k, v in airflow_context_vars.items()),
+        )
+        env.update(airflow_context_vars)
+        return env
+
+    def execute_bash_command(self, bash_command:str, env: dict):
+        
+        bash_path = shutil.which("bash") or "bash"
+
+        logging.info("Running bash command: "+ bash_command)
+
+        result = self.subprocess_hook.run_command(
+            command=[bash_path, "-c", bash_command],
+            env=env,
+            output_encoding=self.output_encoding,
+            cwd=self.cwd,
+        )
+
+        if result.exit_code != 0:
+            raise AirflowException(
+                f"Bash command failed. The command returned a non-zero exit code {result.exit_code}."
+            )
+
+        return result.output
+    
+    def execute(self, context):
+
+        env = self.get_env(context)
+
+        # Define task-flow tasks within the execute method of the custom operator
+        @task(task_id="create_eks_cluster")
+        def create_eks_cluster(env : dict):
+            command = f"""
+            eksctl create cluster -f {self.eks_k8_spec}
+            """
+            result = self.execute_bash_command(command,env)
+            logging.info(result)
+
+            return result
+
+        @task(task_id="update_kubeconfig")
+        def update_kubeconfig(env : dict):
+            command = f"eksctl utils write-kubeconfig --cluster={self.cluster_name} --region={self.region}"
+        
+            result = self.execute_bash_command(command, env)
+            logging.info(result)
+            return result
+
+        @task(task_id="add_kuberay_operator")
+        def add_kuberay_operator(env : dict):
+            # Helm commands to add repo, update, and install KubeRay operator
+            helm_commands = f"""
+            helm repo add kuberay https://ray-project.github.io/kuberay-helm/ && \
+            helm repo update && \
+            helm install kuberay-operator kuberay/kuberay-operator \
+            --version 1.0.0 --create-namespace --namespace {self.ray_namespace}
+            """
+            
+            result = self.execute_bash_command(helm_commands, env)
+            logging.info(result)
+            return result
+
+        @task(task_id="create_ray_cluster")
+        def create_ray_cluster(env : dict):
+
+            command = f"kubectl apply -f {self.ray_cluster_yaml} -n {self.ray_namespace}"
+        
+            result = self.execute_bash_command(command, env)
+            logging.info(result)
+            return result
+
+        @task(task_id="delete_eks_cluster")
+        def delete_eks_cluster(env : dict):
+
+            command = f"eksctl delete cluster --name={self.cluster_name} --region={self.region}"
+        
+            result = self.execute_bash_command(command, env)
+            logging.info(result)
+            return result
+
+        if self.eks_delete_cluster:
+            delete_eks_cluster(env)
+        else:
+            eks_cluster = create_eks_cluster(env)
+            kubeconfig = update_kubeconfig(env)
+            kuberay_operator = add_kuberay_operator(env)
+            ray_cluster = create_ray_cluster(env)
+            eks_delete_cluster = delete_eks_cluster(env)
+
+            # Define dependencies or flow if needed
+            eks_cluster.as_setup() >> kubeconfig >> kuberay_operator >> ray_cluster >> eks_delete_cluster.as_teardown()
+        
+        return
+
+
 
 class SubmitRayJob(BaseOperator):
 
