@@ -133,5 +133,5 @@ with DAG(
     create_cluster >> delete_nodegroup_and_cluster
 
     # task dependencies
-    setup_tasks >> start_pod >> teardown_tasks
+    setup_tasks >> start_pod #>> teardown_tasks
 
