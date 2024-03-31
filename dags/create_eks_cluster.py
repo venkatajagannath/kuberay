@@ -86,7 +86,7 @@ with DAG(
             aws_conn_id=AWS_CONN_ID,
         )
 
-        setup_tasks = create_launch_template.as_setup() >> create_cluster.as_setup()
+        setup_tasks = create_launch_template >> create_cluster
 
         start_pod = EksPodOperator(
             task_id="start_pod",
@@ -99,7 +99,7 @@ with DAG(
             aws_conn_id=AWS_CONN_ID,
         )
 
-    with TaskGroup("teardown_cluster") as teardown:
+    """with TaskGroup("teardown_cluster") as teardown:
 
         @task
         def delete_launch_template():
@@ -126,12 +126,12 @@ with DAG(
         teardown_tasks = (
             delete_nodegroup_and_cluster.as_teardown()
             >> delete_launch_template.as_teardown()
-        )
+        )"""
 
     # setup/teardown dependencies
     #create_launch_template >> delete_launch_template
     #create_cluster >> delete_nodegroup_and_cluster
 
     # task dependencies
-    setup_tasks >> start_pod >> teardown_tasks
+    setup_tasks >> start_pod #>> teardown_tasks
 
