@@ -185,17 +185,24 @@ class RayClusterOperator(BaseOperator):
 
         return
 
-class RayClusterTaskOperator(BaseOperator):
-    @apply_defaults
-    def __init__(self, cluster_name: str, region: str, eks_k8_spec: str, ray_namespace: str, ray_cluster_yaml: str, eks_delete_cluster: bool = False, env: dict = None, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class RayClusterOperator_(BaseOperator):
+
+
+    def __init__(self,*,
+                 cluster_name: str = None,
+                 region: str = None,
+                 ray_namespace: str = None,
+                 ray_cluster_yaml : str = None,
+                 env: dict = None,
+                 **kwargs,):
+        
+        super().__init__(**kwargs)
         self.cluster_name = cluster_name
         self.region = region
-        self.eks_k8_spec = eks_k8_spec
         self.ray_namespace = ray_namespace
-        self.ray_cluster_yaml = ray_cluster_yaml
-        self.eks_delete_cluster = eks_delete_cluster
-        self.env = env or {}
+        self.env = env
+        self.output_encoding: str = "utf-8"
+        self.cwd = tempfile.mkdtemp(prefix="tmp")
 
         if not self.cluster_name:
             raise AirflowException("EKS cluster name is required.")
@@ -203,16 +210,6 @@ class RayClusterTaskOperator(BaseOperator):
             raise AirflowException("EKS region is required.")
         if not self.ray_namespace:
             raise AirflowException("EKS namespace is required.")
-        
-        # Check if k8 cluster spec is provided
-        if not eks_k8_spec:
-            raise AirflowException("K8 Cluster spec is required")
-        elif not os.path.isfile(eks_k8_spec):
-            raise AirflowException(f"The specified K8 cluster YAML file does not exist: {eks_k8_spec}")
-        elif not eks_k8_spec.endswith('.yaml') and not eks_k8_spec.endswith('.yml'):
-            raise AirflowException("The specified K8 cluster YAML file must have a .yaml or .yml extension.")
-        else:
-            self.eks_k8_spec = eks_k8_spec
 
         # Check if ray cluster spec is provided
         if not ray_cluster_yaml:
@@ -267,76 +264,46 @@ class RayClusterTaskOperator(BaseOperator):
 
         return result.output
     
-    def execute(self, context):
+    def update_kubeconfig(self, env: dict):
+
+        command = f"eksctl utils write-kubeconfig --cluster={self.cluster_name} --region={self.region}"
+        
+        result = self.execute_bash_command(command, env)
+        logging.info(result)
+        return result
+
+    def add_kuberay_operator(self, env: dict):
+        # Helm commands to add repo, update, and install KubeRay operator
+        helm_commands = f"""
+        helm repo add kuberay https://ray-project.github.io/kuberay-helm/ && \
+        helm repo update && \
+        helm install kuberay-operator kuberay/kuberay-operator \
+        --version 1.0.0 --create-namespace --namespace {self.ray_namespace}
+        """
+        
+        result = self.execute_bash_command(helm_commands, env)
+        logging.info(result)
+        return result
+    
+    def create_ray_cluster(self, env: dict):
+
+        command = f"kubectl apply -f {self.ray_cluster_yaml} -n {self.ray_namespace}"
+        
+        result = self.execute_bash_command(command, env)
+        logging.info(result)
+        return result
+    
+    def execute(self, context: Context):
 
         env = self.get_env(context)
 
-        # Define task-flow tasks within the execute method of the custom operator
-        @task(task_id="create_eks_cluster")
-        def create_eks_cluster(env : dict):
-            command = f"""
-            eksctl create cluster -f {self.eks_k8_spec}
-            """
-            result = self.execute_bash_command(command,env)
-            logging.info(result)
+        self.update_kubeconfig(env)
 
-            return result
+        self.add_kuberay_operator(env)
 
-        @task(task_id="update_kubeconfig")
-        def update_kubeconfig(env : dict):
-            command = f"eksctl utils write-kubeconfig --cluster={self.cluster_name} --region={self.region}"
-        
-            result = self.execute_bash_command(command, env)
-            logging.info(result)
-            return result
+        self.create_ray_cluster(env)
 
-        @task(task_id="add_kuberay_operator")
-        def add_kuberay_operator(env : dict):
-            # Helm commands to add repo, update, and install KubeRay operator
-            helm_commands = f"""
-            helm repo add kuberay https://ray-project.github.io/kuberay-helm/ && \
-            helm repo update && \
-            helm install kuberay-operator kuberay/kuberay-operator \
-            --version 1.0.0 --create-namespace --namespace {self.ray_namespace}
-            """
-            
-            result = self.execute_bash_command(helm_commands, env)
-            logging.info(result)
-            return result
-
-        @task(task_id="create_ray_cluster")
-        def create_ray_cluster(env : dict):
-
-            command = f"kubectl apply -f {self.ray_cluster_yaml} -n {self.ray_namespace}"
-        
-            result = self.execute_bash_command(command, env)
-            logging.info(result)
-            return result
-
-        @task(task_id="delete_eks_cluster")
-        def delete_eks_cluster(env : dict):
-
-            command = f"eksctl delete cluster --name={self.cluster_name} --region={self.region}"
-        
-            result = self.execute_bash_command(command, env)
-            logging.info(result)
-            return result
-
-        if self.eks_delete_cluster:
-            delete_eks_cluster(env)
-        else:
-            eks_cluster = create_eks_cluster(env)
-            kubeconfig = update_kubeconfig(env)
-            kuberay_operator = add_kuberay_operator(env)
-            ray_cluster = create_ray_cluster(env)
-            eks_delete_cluster = delete_eks_cluster(env)
-
-            # Define dependencies or flow if needed
-            eks_cluster.as_setup() >> kubeconfig >> kuberay_operator >> ray_cluster >> eks_delete_cluster.as_teardown()
-        
         return
-
-
 
 class SubmitRayJob(BaseOperator):
 

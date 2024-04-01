@@ -1,6 +1,7 @@
 
 from airflow import DAG
-from operators.kuberay import RayClusterOperator
+from operators.kuberay import RayClusterOperator_
+from operators.eks import CreateEKSCluster,DeleteEKSCluster
 from datetime import datetime, timedelta
 
 from airflow.models.connection import Connection
@@ -23,6 +24,9 @@ default_args = {
     'retry_delay': timedelta(minutes=5),
 }
 
+CLUSTERNAME = 'RayCluster'
+REGION = 'us-east-2'
+
 dag = DAG(
     'start_ray_cluster',
     default_args=default_args,
@@ -30,15 +34,27 @@ dag = DAG(
     schedule_interval='@daily',
 )
 
-ray_cluster = RayClusterOperator(task_id="RayClusterOperator",
-                                 cluster_name="RayCluster",
-                                 region="us-east-2",
-                                 eks_k8_spec="/usr/local/airflow/scripts/k8.yaml",
+create_eks_cluster = CreateEKSCluster(task_id="CreateEKSCluster",
+                                      cluster_name=CLUSTERNAME,
+                                      region=REGION,
+                                      eks_k8_spec="/usr/local/airflow/scripts/k8.yaml",
+                                      env= {},
+                                      dag = dag,)
+
+ray_cluster = RayClusterOperator_(task_id="RayClusterOperator",
+                                 cluster_name=CLUSTERNAME,
+                                 region=REGION,
                                  ray_namespace="ray",
                                  ray_cluster_yaml="/usr/local/airflow/scripts/ray.yaml",
-                                 eks_delete_cluster=False,
                                  env = {},
                                  dag = dag,)
 
-ray_cluster
+delete_eks_cluster = DeleteEKSCluster(task_id="DeleteEKSCluster",
+                                      cluster_name=CLUSTERNAME,
+                                      region=REGION,
+                                      env = {},
+                                      dag = dag,)
+
+create_eks_cluster.as_setup() >> ray_cluster >> delete_eks_cluster.as_teardown()
+create_eks_cluster >> delete_eks_cluster
 
