@@ -56,7 +56,10 @@ def create_service_and_get_url(namespace="default", yaml_file="ray-head-service.
     max_retries = 30  # For example, retry for up to 5 minutes
     retry_interval = 10  # Retry every 10 seconds
 
+    service = None
+
     for _ in range(max_retries):
+        logging.info(f"Waiting for service creation : {created_service.metadata.name}")
         try:
             service = v1.read_namespaced_service(name=created_service.metadata.name, namespace=namespace)
             # If the service is found, break out of the loop
@@ -73,8 +76,8 @@ def create_service_and_get_url(namespace="default", yaml_file="ray-head-service.
                 raise e
             # If it's a 404 error, wait and retry
             time.sleep(retry_interval)
-    
-
+        time.sleep(retry_interval)
+        
     if not service:
         # If we exhausted retries, raise an exception or handle it as necessary
         logging.error("Failed to find the created service within the expected time.")
