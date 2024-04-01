@@ -91,7 +91,7 @@ with DAG(
 
         ray_cluster_setup = RayClusterOperator(
                                 task_id="RayClusterOperator",
-                                 cluster_name="RayCluster",
+                                 cluster_name=CLUSTER_NAME,
                                  region="us-east-2",
                                  eks_k8_spec="/usr/local/airflow/scripts/k8.yaml",
                                  ray_namespace="ray",
