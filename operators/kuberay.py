@@ -43,15 +43,15 @@ def create_service_and_get_url(namespace="default", yaml_file="ray-head-service.
     created_service = v1.create_namespaced_service(namespace=namespace, body=service_data)
     logging.info(f"Service {created_service.metadata.name} created. Waiting for an external IP...")
 
-    w = watch.Watch()
-    for event in w.stream(v1.list_namespaced_service, namespace=namespace, timeout_seconds=600):
-        service = event['object']
-        if service.metadata.name == created_service.metadata.name and service.status.load_balancer.ingress:
-            external_ip = service.status.load_balancer.ingress[0].ip
-            port = service.spec.ports[0].port
-            url = f"http://{external_ip}:{port}"
-            logging.info(f"Service URL: {url}")
-            w.stop()
+    logging.info("Waiting for LoadBalancer to get an external IP. This may take a few minutes...")
+    time.sleep(60)  # Simple wait; consider implementing a retry loop
+
+    service = v1.read_namespaced_service(name=created_service, namespace=namespace)
+    external_ip = service.status.load_balancer.ingress[0].ip
+    port = service.spec.ports[0].port
+
+    url = f"http://{external_ip}:{port}"
+    logging.info(f"Service URL: {url}")
 
 class RayClusterOperator(BaseOperator):
 

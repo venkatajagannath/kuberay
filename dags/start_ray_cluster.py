@@ -26,6 +26,10 @@ default_args = {
 
 CLUSTERNAME = 'RayCluster'
 REGION = 'us-east-2'
+K8SPEC = '/usr/local/airflow/dags/scripts/k8.yaml'
+RAY_SPEC = '/usr/local/airflow/dags/scripts/ray.yaml'
+RAY_DASHBOARD = '/usr/local/airflow/dags/scripts/ray-dashboard-service.yaml'
+RAY_CLIENT = '/usr/local/airflow/dags/scripts/ray-client-service.yaml'
 
 dag = DAG(
     'start_ray_cluster',
@@ -37,7 +41,7 @@ dag = DAG(
 create_eks_cluster = CreateEKSCluster(task_id="CreateEKSCluster",
                                       cluster_name=CLUSTERNAME,
                                       region=REGION,
-                                      eks_k8_spec="/usr/local/airflow/dags/scripts/k8.yaml",
+                                      eks_k8_spec=K8SPEC,
                                       env= {},
                                       dag = dag,)
 
@@ -45,9 +49,9 @@ ray_cluster = RayClusterOperator_(task_id="RayClusterOperator",
                                  cluster_name=CLUSTERNAME,
                                  region=REGION,
                                  ray_namespace="ray",
-                                 ray_cluster_yaml="/usr/local/airflow/dags/scripts/ray.yaml",
-                                 ray_dashboard_svc_yaml="/usr/local/airflow/dags/scripts/ray-dashboard-service.yaml",
-                                 ray_client_svc_yaml="/usr/local/airflow/dags/scripts/ray-client-service.yaml",
+                                 ray_cluster_yaml=RAY_SPEC,
+                                 ray_dashboard_svc_yaml=RAY_DASHBOARD,
+                                 ray_client_svc_yaml=RAY_CLIENT,
                                  env = {},
                                  dag = dag,)
 
