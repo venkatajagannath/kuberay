@@ -41,7 +41,7 @@ def create_service_and_get_url(namespace="default", yaml_file="ray-head-service.
     
     v1 = client.CoreV1Api()
     created_service = v1.create_namespaced_service(namespace=namespace, body=service_data)
-    print(f"Service {created_service.metadata.name} created. Waiting for an external IP...")
+    logging.info(f"Service {created_service.metadata.name} created. Waiting for an external IP...")
 
     w = watch.Watch()
     for event in w.stream(v1.list_namespaced_service, namespace=namespace, timeout_seconds=600):
@@ -50,7 +50,7 @@ def create_service_and_get_url(namespace="default", yaml_file="ray-head-service.
             external_ip = service.status.load_balancer.ingress[0].ip
             port = service.spec.ports[0].port
             url = f"http://{external_ip}:{port}"
-            print(f"Service URL: {url}")
+            logging.info(f"Service URL: {url}")
             w.stop()
 
 class RayClusterOperator(BaseOperator):
@@ -340,6 +340,8 @@ class RayClusterOperator_(BaseOperator):
         self.add_kuberay_operator(env)
 
         self.create_ray_cluster(env)
+
+        logging.info("Creating services ...")
 
         # Creating K8 services
         self.create_k8_service(self.ray_namespace, self.ray_dashboard_svc_yaml)
