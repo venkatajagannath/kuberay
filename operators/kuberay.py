@@ -46,12 +46,40 @@ def create_service_and_get_url(namespace="default", yaml_file="ray-head-service.
     logging.info("Waiting for LoadBalancer to get an external IP. This may take a few minutes...")
     time.sleep(60)  # Simple wait; consider implementing a retry loop
 
-    service = v1.read_namespaced_service(name=created_service.metadata.name, namespace=namespace)
+    """service = v1.read_namespaced_service(name=created_service.metadata.name, namespace=namespace)
     external_ip = service.status.load_balancer.ingress[0].ip
     port = service.spec.ports[0].port
 
     url = f"http://{external_ip}:{port}"
-    logging.info(f"Service URL: {url}")
+    logging.info(f"Service URL: {url}")"""
+
+    max_retries = 30  # For example, retry for up to 5 minutes
+    retry_interval = 10  # Retry every 10 seconds
+
+    for _ in range(max_retries):
+        try:
+            service = v1.read_namespaced_service(name=created_service.metadata.name, namespace=namespace)
+            # If the service is found, break out of the loop
+            if service:
+                external_ip = service.status.load_balancer.ingress[0].ip
+                port = service.spec.ports[0].port
+
+                url = f"http://{external_ip}:{port}"
+                logging.info(f"Service URL: {url}")
+            break
+        except client.exceptions.ApiException as e:
+            if e.status != 404:
+                # If it's an error other than 404, raise it
+                raise e
+            # If it's a 404 error, wait and retry
+            time.sleep(retry_interval)
+    
+
+    if not service:
+        # If we exhausted retries, raise an exception or handle it as necessary
+        logging.error("Failed to find the created service within the expected time.")
+        #raise Exception("Service not found after retries")
+
 
     return url
 
