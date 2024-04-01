@@ -12,6 +12,8 @@ spec:
       block: "true"
     template:
       metadata:
+        labels:
+          ray-node-type: head
       spec:
         containers:
         - name: ray-head

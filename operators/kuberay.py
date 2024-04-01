@@ -19,6 +19,7 @@ import logging
 import tempfile
 from ray.job_submission import JobSubmissionClient, JobStatus
 import time
+from utils import create_service_and_get_url
 
 import logging
 logging.basicConfig(level=logging.DEBUG)
@@ -193,6 +194,8 @@ class RayClusterOperator_(BaseOperator):
                  region: str = None,
                  ray_namespace: str = None,
                  ray_cluster_yaml : str = None,
+                 ray_dashboard_svc_yaml : str = None,
+                 ray_client_svc_yaml : str = None,
                  env: dict = None,
                  **kwargs,):
         
@@ -200,6 +203,8 @@ class RayClusterOperator_(BaseOperator):
         self.cluster_name = cluster_name
         self.region = region
         self.ray_namespace = ray_namespace
+        self.ray_dashboard_svc_yaml = ray_dashboard_svc_yaml
+        self.ray_client_svc_yaml = ray_client_svc_yaml
         self.env = env
         self.output_encoding: str = "utf-8"
         self.cwd = tempfile.mkdtemp(prefix="tmp")
@@ -293,6 +298,10 @@ class RayClusterOperator_(BaseOperator):
         logging.info(result)
         return result
     
+    def create_k8_service(self, namespace: str, yaml : str):
+
+        return create_service_and_get_url(namespace, yaml)
+    
     def execute(self, context: Context):
 
         env = self.get_env(context)
@@ -302,6 +311,10 @@ class RayClusterOperator_(BaseOperator):
         self.add_kuberay_operator(env)
 
         self.create_ray_cluster(env)
+
+        # Creating K8 services
+        self.create_k8_service(self.ray_namespace, self.ray_dashboard_svc_yaml)
+        self.create_k8_service(self.ray_namespace, self.ray_client_svc_yaml)
 
         return
 
