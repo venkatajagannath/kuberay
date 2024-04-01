@@ -46,8 +46,8 @@ ray_cluster = RayClusterOperator_(task_id="RayClusterOperator",
                                  region=REGION,
                                  ray_namespace="ray",
                                  ray_cluster_yaml="/usr/local/airflow/scripts/ray.yaml",
-                                 ray_dashboard_svc_yaml="../scripts/ray-dashboard-service.yaml",
-                                 ray_client_svc_yaml="../scripts/ray-client-service.yaml",
+                                 ray_dashboard_svc_yaml="./ray-dashboard-service.yaml",
+                                 ray_client_svc_yaml="./ray-client-service.yaml",
                                  env = {},
                                  dag = dag,)
 
