@@ -37,7 +37,7 @@ dag = DAG(
 create_eks_cluster = CreateEKSCluster(task_id="CreateEKSCluster",
                                       cluster_name=CLUSTERNAME,
                                       region=REGION,
-                                      eks_k8_spec="/usr/local/airflow/scripts/k8.yaml",
+                                      eks_k8_spec="/usr/local/airflow/dags/scripts/k8.yaml",
                                       env= {},
                                       dag = dag,)
 
@@ -45,9 +45,9 @@ ray_cluster = RayClusterOperator_(task_id="RayClusterOperator",
                                  cluster_name=CLUSTERNAME,
                                  region=REGION,
                                  ray_namespace="ray",
-                                 ray_cluster_yaml="/usr/local/airflow/scripts/ray.yaml",
-                                 ray_dashboard_svc_yaml="./ray-dashboard-service.yaml",
-                                 ray_client_svc_yaml="./ray-client-service.yaml",
+                                 ray_cluster_yaml="/usr/local/airflow/dags/scripts/ray.yaml",
+                                 ray_dashboard_svc_yaml="/usr/local/airflow/dags/scripts/ray-dashboard-service.yaml",
+                                 ray_client_svc_yaml="/usr/local/airflow/dags/scripts/ray-client-service.yaml",
                                  env = {},
                                  dag = dag,)
 
