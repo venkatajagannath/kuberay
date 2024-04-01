@@ -46,7 +46,7 @@ def create_service_and_get_url(namespace="default", yaml_file="ray-head-service.
     logging.info("Waiting for LoadBalancer to get an external IP. This may take a few minutes...")
     time.sleep(60)  # Simple wait; consider implementing a retry loop
 
-    service = v1.read_namespaced_service(name=created_service, namespace=namespace)
+    service = v1.read_namespaced_service(name=created_service.metadata.name, namespace=namespace)
     external_ip = service.status.load_balancer.ingress[0].ip
     port = service.spec.ports[0].port
 
