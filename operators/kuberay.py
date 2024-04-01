@@ -53,6 +53,8 @@ def create_service_and_get_url(namespace="default", yaml_file="ray-head-service.
     url = f"http://{external_ip}:{port}"
     logging.info(f"Service URL: {url}")
 
+    return url
+
 class RayClusterOperator(BaseOperator):
 
 
@@ -346,8 +348,11 @@ class RayClusterOperator_(BaseOperator):
         logging.info("Creating services ...")
 
         # Creating K8 services
-        self.create_k8_service(self.ray_namespace, self.ray_dashboard_svc_yaml)
-        self.create_k8_service(self.ray_namespace, self.ray_client_svc_yaml)
+        dashboard_url = self.create_k8_service(self.ray_namespace, self.ray_dashboard_svc_yaml)
+        client_url = self.create_k8_service(self.ray_namespace, self.ray_client_svc_yaml)
+
+        context['task_instance'].xcom_push(key='dashboardURL', value=dashboard_url)
+        context['task_instance'].xcom_push(key='clientUrl', value=client_url)
 
         return
 
