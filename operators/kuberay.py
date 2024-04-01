@@ -38,7 +38,7 @@ def create_service_and_get_url(namespace="default", yaml_file="ray-head-service.
 
     with open(yaml_file) as f:
         service_data = yaml.safe_load(f)
-    
+
     v1 = client.CoreV1Api()
     created_service = v1.create_namespaced_service(namespace=namespace, body=service_data)
     logging.info(f"Service {created_service.metadata.name} created. Waiting for an external IP...")
@@ -328,6 +328,8 @@ class RayClusterOperator_(BaseOperator):
         return result
     
     def create_k8_service(self, namespace: str, yaml : str):
+
+        logging.info("Creating service with yaml file: "+ yaml)
 
         return create_service_and_get_url(namespace, yaml)
     
