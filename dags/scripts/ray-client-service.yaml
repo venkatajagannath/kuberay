@@ -5,7 +5,7 @@ metadata:
   namespace: ray
 spec:
   selector:
-    ray.io/cluster: raycluster-complete
+    ray.io/cluster: raycluster-complete-head-svc
     ray.io/node-type: head
   ports:
   - protocol: TCP
