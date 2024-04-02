@@ -55,12 +55,13 @@ ray_cluster = RayClusterOperator_(task_id="RayClusterOperator",
                                  env = {},
                                  dag = dag,)
 
-delete_eks_cluster = DeleteEKSCluster(task_id="DeleteEKSCluster",
+"""delete_eks_cluster = DeleteEKSCluster(task_id="DeleteEKSCluster",
                                       cluster_name=CLUSTERNAME,
                                       region=REGION,
                                       env = {},
-                                      dag = dag,)
+                                      dag = dag,)"""
 
-create_eks_cluster.as_setup() >> ray_cluster >> delete_eks_cluster.as_teardown()
-create_eks_cluster >> delete_eks_cluster
+create_eks_cluster >> ray_cluster
+#create_eks_cluster.as_setup() >> ray_cluster >> delete_eks_cluster.as_teardown()
+#create_eks_cluster >> delete_eks_cluster
 
