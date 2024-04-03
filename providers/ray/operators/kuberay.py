@@ -54,7 +54,7 @@ def create_service_and_get_url(namespace="default", yaml_file="ray-head-service.
     logging.info(f"Service URL: {url}")"""
 
     max_retries = 30  # For example, retry for up to 5 minutes
-    retry_interval = 10  # Retry every 10 seconds
+    retry_interval = 30  # Retry every 10 seconds
 
     service = None
 
@@ -66,6 +66,9 @@ def create_service_and_get_url(namespace="default", yaml_file="ray-head-service.
             if service:
                 external_ip = service.status.load_balancer.ingress[0].ip
                 port = service.spec.ports[0].port
+
+                port_str = ' '.join(service.spec.ports)
+                logging.info("Ports are: "+port_str)
 
                 url = f"http://{external_ip}:{port}"
                 logging.info(f"Service URL: {url}")
@@ -256,8 +259,7 @@ class RayClusterOperator_(BaseOperator):
                  region: str = None,
                  ray_namespace: str = None,
                  ray_cluster_yaml : str = None,
-                 ray_dashboard_svc_yaml : str = None,
-                 ray_client_svc_yaml : str = None,
+                 ray_svc_yaml : str = None,
                  env: dict = None,
                  **kwargs,):
         
@@ -265,8 +267,7 @@ class RayClusterOperator_(BaseOperator):
         self.cluster_name = cluster_name
         self.region = region
         self.ray_namespace = ray_namespace
-        self.ray_dashboard_svc_yaml = ray_dashboard_svc_yaml
-        self.ray_client_svc_yaml = ray_client_svc_yaml
+        self.ray_svc_yaml = ray_svc_yaml
         self.env = env
         self.output_encoding: str = "utf-8"
         self.cwd = tempfile.mkdtemp(prefix="tmp")
@@ -379,11 +380,10 @@ class RayClusterOperator_(BaseOperator):
         logging.info("Creating services ...")
 
         # Creating K8 services
-        dashboard_url = self.create_k8_service(self.ray_namespace, self.ray_dashboard_svc_yaml)
-        client_url = self.create_k8_service(self.ray_namespace, self.ray_client_svc_yaml)
+        url = self.create_k8_service(self.ray_namespace, self.ray_svc_yaml)
 
-        context['task_instance'].xcom_push(key='dashboardURL', value=dashboard_url)
-        context['task_instance'].xcom_push(key='clientUrl', value=client_url)
+        context['task_instance'].xcom_push(key='dashboardURL', value=url)
+        context['task_instance'].xcom_push(key='clientUrl', value=url)
 
         return
 
@@ -427,7 +427,7 @@ class SubmitRayJob(BaseOperator):
             entrypoint= self.entrypoint,
             runtime_env={"working_dir": self.wd})
         self.job_id = job_id
-        
+
         self.wait_until_status()
         
         return self.client.tail_job_logs(job_id)

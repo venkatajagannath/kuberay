@@ -1,7 +1,7 @@
 
 from airflow import DAG
-from operators.kuberay import RayClusterOperator_
-from operators.eks import CreateEKSCluster,DeleteEKSCluster
+from providers.ray.operators.kuberay import RayClusterOperator_
+from providers.ray.operators.eks import CreateEKSCluster,DeleteEKSCluster
 from datetime import datetime, timedelta
 
 from airflow.models.connection import Connection
@@ -28,8 +28,7 @@ CLUSTERNAME = 'RayCluster'
 REGION = 'us-east-2'
 K8SPEC = '/usr/local/airflow/dags/scripts/k8.yaml'
 RAY_SPEC = '/usr/local/airflow/dags/scripts/ray.yaml'
-RAY_DASHBOARD = '/usr/local/airflow/dags/scripts/ray-dashboard-service.yaml'
-RAY_CLIENT = '/usr/local/airflow/dags/scripts/ray-client-service.yaml'
+RAY_SVC = '/usr/local/airflow/dags/scripts/ray-service.yaml'
 
 dag = DAG(
     'start_ray_cluster',
@@ -50,8 +49,7 @@ ray_cluster = RayClusterOperator_(task_id="RayClusterOperator",
                                  region=REGION,
                                  ray_namespace="ray",
                                  ray_cluster_yaml=RAY_SPEC,
-                                 ray_dashboard_svc_yaml=RAY_DASHBOARD,
-                                 ray_client_svc_yaml=RAY_CLIENT,
+                                 ray_svc_yaml= RAY_SVC,
                                  env = {},
                                  dag = dag,)
 

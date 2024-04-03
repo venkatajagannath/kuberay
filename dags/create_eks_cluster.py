@@ -9,7 +9,7 @@ from airflow.providers.amazon.aws.operators.eks import (
  EksDeleteClusterOperator,
  EksPodOperator,
 )
-from operators.kuberay import RayClusterOperator
+from providers.ray.operators.kuberay import RayClusterOperator
 from airflow.utils.task_group import TaskGroup
 
 # Replace the values below with the desired cluster and nodegroup names

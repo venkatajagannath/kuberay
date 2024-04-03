@@ -1,33 +1,4 @@
 
-
-
-"""from airflow.decorators import dag
-from operators.kuberay import RayClusterExecutor, SubmitRayJob
-import datetime
-
-#Define the basic parameters of the DAG, like schedule and start_date
-with dag(
-    start_date=datetime(2024, 1, 1),
-    schedule="@daily",
-    catchup=False,
-    doc_md=__doc__,
-    default_args={"owner": "Astro", "retries": 3},
-    tags=["example"],
-) as dag:
-    
-    start_cluster = RayClusterOperator()
-
-
-    submit_job = SubmitRayJob()
-
-
-
-    delete_cluster = RayClusterOperator()
-
-
-
-    start_cluster>>submit_job>>delete_cluster"""
-
 from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.python import PythonOperator
