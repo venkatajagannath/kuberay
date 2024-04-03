@@ -67,7 +67,7 @@ def create_service_and_get_url(namespace="default", yaml_file="ray-head-service.
                 external_ip = service.status.load_balancer.ingress[0].ip
                 port = service.spec.ports[0].port
 
-                port_str = ' '.join(service.spec.ports)
+                port_str = ' '.join([str(port.port) for port in service.spec.ports])
                 logging.info("Ports are: "+port_str)
 
                 url = f"http://{external_ip}:{port}"
