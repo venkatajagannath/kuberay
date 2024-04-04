@@ -406,7 +406,7 @@ class SubmitRayJob(BaseOperator):
     def execute(self,context : Context):
 
         if not self.client:
-            self.client = JobSubmissionClient(f"http://{self.url}")
+            self.client = JobSubmissionClient(f"{self.url}")
 
         job_id = self.client.submit_job(
             entrypoint= self.entrypoint,
