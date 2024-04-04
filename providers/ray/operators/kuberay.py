@@ -418,7 +418,7 @@ class SubmitRayJob(BaseOperator):
                 break
             time.sleep(1)
 
-    def execute(self):
+    def execute(self,context : Context):
 
         if not self.client:
             self.client = JobSubmissionClient(f"http://{self.url}")
