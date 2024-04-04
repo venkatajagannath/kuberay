@@ -67,12 +67,9 @@ def create_service_and_get_url(namespace="default", yaml_file="ray-head-service.
                 external_ip = service.status.load_balancer.ingress[0].ip
                 port = service.spec.ports[0].port
 
-                port_str = ' '.join([str(port.port) for port in service.spec.ports])
-                logging.info("Ports are: "+port_str)
-
-                url = f"http://{external_ip}:{port}"
+                urls = [f"http://{external_ip}:{port.port}" for port in service.spec.ports]
                 logging.info(f"Service URL: {url}")
-            break
+                break
         except client.exceptions.ApiException as e:
             if e.status != 404:
                 # If it's an error other than 404, raise it
@@ -87,7 +84,7 @@ def create_service_and_get_url(namespace="default", yaml_file="ray-head-service.
         #raise Exception("Service not found after retries")
 
 
-    return url
+    return urls
 
 class RayClusterOperator(BaseOperator):
 
@@ -380,29 +377,30 @@ class RayClusterOperator_(BaseOperator):
         logging.info("Creating services ...")
 
         # Creating K8 services
-        url = self.create_k8_service(self.ray_namespace, self.ray_svc_yaml)
+        urls = self.create_k8_service(self.ray_namespace, self.ray_svc_yaml)
 
-        context['task_instance'].xcom_push(key='dashboardURL', value=url)
-        context['task_instance'].xcom_push(key='clientUrl', value=url)
+        for index, url in enumerate(urls, start=1):
+            key = f'url{index}'
+            context['task_instance'].xcom_push(key=key, value=url)
 
         return
 
 class SubmitRayJob(BaseOperator):
 
+    template_fields = ('url', 'entrypoint', 'wd',)
+
     def __init__(self,*,
-                 ip_address: str = None,
-                 portno: str = None,
+                 url: str = None,
                  entrypoint: str = None,
                  wd: str = None,
                  env: dict = None,
                  **kwargs,):
         
         super().__init__(**kwargs)
-        self.ip = ip_address
-        self.portno = portno
+        self.url = url
         self.entrypoint = entrypoint
         self.wd = wd,
-        self.client = JobSubmissionClient("http://{self.ip}:{portno}")
+        self.client = JobSubmissionClient("http://{self.url}")
         self.job_id = None
         self.status_to_wait_for = {JobStatus.SUCCEEDED, JobStatus.STOPPED, JobStatus.FAILED}
     
