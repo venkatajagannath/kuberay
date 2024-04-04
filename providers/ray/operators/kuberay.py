@@ -10,6 +10,8 @@ from airflow.utils.decorators import apply_defaults
 from airflow.exceptions import AirflowException
 from airflow.decorators import task
 
+from providers.ray.triggers.kuberay import RayJobTrigger
+
 import os
 import shutil
 import warnings
@@ -373,15 +375,17 @@ class SubmitRayJob(BaseOperator):
     template_fields = ('url', 'entrypoint', 'wd',)
 
     def __init__(self,*,
-                 url: str = None,
-                 entrypoint: str = None,
-                 wd: str = None,
+                 url: str,
+                 entrypoint: str,
+                 wd: str,
+                 timeout: int = 600,
                  env: dict = None,
                  **kwargs):
         
         super().__init__(**kwargs)
         self.url = url
         self.entrypoint = entrypoint
+        self.timeout = timeout
         self.wd = wd
         self.env = env if env is not None else {}
         self.client = None
@@ -410,12 +414,31 @@ class SubmitRayJob(BaseOperator):
 
         job_id = self.client.submit_job(
             entrypoint= self.entrypoint,
-            runtime_env={"working_dir": self.wd})
+            runtime_env={"working_dir": self.wd})  #https://docs.ray.io/en/latest/ray-core/handling-dependencies.html#runtime-environments
         self.job_id = job_id
 
-        self.wait_until_status()
+        self.defer(
+            timeout= self.execution_timeout,
+            trigger= RayJobTrigger(
+                url = self.url,
+                job_id = job_id,
+                timeout= self.timeout,
+                poll_interval=60
+            ),
+            method_name="execute_complete",)
         
-        return self.client.tail_job_logs(job_id)
+        return job_id
+    
+    def execute_complete(self, context: Context, event: Any = None) -> None:
+
+        if event["status"] == JobStatus.FAILED or event["status"] == "timeout":
+            raise AirflowException(event["message"])
+        elif event["status"] == JobStatus.SUCCEEDED:
+            return
+        
+        return None
+        
+
 
 
 class DeployRayService(BaseOperator):
