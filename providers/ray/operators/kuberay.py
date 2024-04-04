@@ -406,6 +406,8 @@ class SubmitRayJob(BaseOperator):
             runtime_env={"working_dir": self.wd})  #https://docs.ray.io/en/latest/ray-core/handling-dependencies.html#runtime-environments
         self.job_id = job_id
 
+        logging.info(f"Ray job submitted with id:{self.job_id}")
+
         self.defer(
             timeout= self.execution_timeout,
             trigger= RayJobTrigger(
