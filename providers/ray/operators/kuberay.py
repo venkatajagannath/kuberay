@@ -400,7 +400,7 @@ class SubmitRayJob(BaseOperator):
         self.url = url
         self.entrypoint = entrypoint
         self.wd = wd,
-        self.client = JobSubmissionClient("http://{self.url}")
+        self.client = JobSubmissionClient(f"http://{self.url}")
         self.job_id = None
         self.status_to_wait_for = {JobStatus.SUCCEEDED, JobStatus.STOPPED, JobStatus.FAILED}
     
