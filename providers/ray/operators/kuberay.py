@@ -47,7 +47,7 @@ def create_service_and_get_url(namespace="default", yaml_file="ray-head-service.
     time.sleep(60)  # Simple wait; consider implementing a retry loop
 
     max_retries = 30  # For example, retry for up to 5 minutes
-    retry_interval = 30  # Retry every 10 seconds
+    retry_interval = 60  # Retry every 10 seconds
 
     service = None
     external_ip = None
@@ -67,9 +67,9 @@ def create_service_and_get_url(namespace="default", yaml_file="ray-head-service.
                 for url in urls:
                     logging.info(f"Service URL: {url}")
                 break
-        else:
-            logging.info("External IP not yet available, waiting...")
-            time.sleep(retry_interval)
+            else:
+                logging.info("External IP not yet available, waiting...")
+                time.sleep(retry_interval)
     
     if not external_ip:
         logging.error("Failed to find the external IP for the created service within the expected time.")
@@ -373,9 +373,13 @@ class RayClusterOperator_(BaseOperator):
         # Creating K8 services
         urls = self.create_k8_service(self.ray_namespace, self.ray_svc_yaml)
 
-        for index, url in enumerate(urls, start=1):
-            key = f'url{index}'
-            context['task_instance'].xcom_push(key=key, value=url)
+        if urls:
+            for index, url in enumerate(urls, start=1):
+                key = f'url{index}'
+                context['task_instance'].xcom_push(key=key, value=url)
+        else:
+            # Handle the case when urls is None or empty
+            logging.info("No URLs to push to XCom.")
 
         return
 
