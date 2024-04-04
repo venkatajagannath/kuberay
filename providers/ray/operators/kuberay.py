@@ -28,12 +28,6 @@ import yaml
 import time
 
 def create_service_and_get_url(namespace="default", yaml_file="ray-head-service.yaml"):
-    """
-    Creates a service in Kubernetes from a YAML file and retrieves its external URL.
-
-    :param namespace: The Kubernetes namespace where the service is to be created.
-    :param yaml_file: Path to the YAML file with the service definition.
-    """
     config.load_kube_config()
 
     with open(yaml_file) as f:
@@ -41,43 +35,34 @@ def create_service_and_get_url(namespace="default", yaml_file="ray-head-service.
 
     v1 = client.CoreV1Api()
     created_service = v1.create_namespaced_service(namespace=namespace, body=service_data)
-    logging.info(f"Service {created_service.metadata.name} created. Waiting for an external IP...")
+    logging.info(f"Service {created_service.metadata.name} created. Waiting for an external DNS name...")
 
-    logging.info("Waiting for LoadBalancer to get an external IP. This may take a few minutes...")
-    time.sleep(60)  # Simple wait; consider implementing a retry loop
+    max_retries = 30
+    retry_interval = 40
 
-    max_retries = 30  # For example, retry for up to 5 minutes
-    retry_interval = 60  # Retry every 10 seconds
-
-    service = None
-    external_ip = None
+    external_dns = None
 
     for attempt in range(max_retries):
-        logging.info(f"Attempt {attempt + 1}: Checking for service's external IP...")
+        logging.info(f"Attempt {attempt + 1}: Checking for service's external DNS name...")
         service = v1.read_namespaced_service(name=created_service.metadata.name, namespace=namespace)
         
-        if service.status.load_balancer.ingress:
-            external_ip = service.status.load_balancer.ingress[0].ip
-            if external_ip:
-                logging.info(f"External IP found: {external_ip}")
-                port = service.spec.ports[0].port
+        if service.status.load_balancer.ingress and service.status.load_balancer.ingress[0].hostname:
+            external_dns = service.status.load_balancer.ingress[0].hostname
+            logging.info(f"External DNS name found: {external_dns}")
+            urls = [f"http://{external_dns}:{port.port}" for port in service.spec.ports]
 
-                urls = [f"http://{external_ip}:{port.port}" for port in service.spec.ports]
-
-                for url in urls:
-                    logging.info(f"Service URL: {url}")
-                break
-            else:
-                logging.info("External IP not yet available, waiting...")
-                time.sleep(retry_interval)
+            for url in urls:
+                logging.info(f"Service URL: {url}")
+            break
+        else:
+            logging.info("External DNS name not yet available, waiting...")
+            time.sleep(retry_interval)
     
-    if not external_ip:
-        logging.error("Failed to find the external IP for the created service within the expected time.")
-        return None  # Or handle the error as needed
+    if not external_dns:
+        logging.error("Failed to find the external DNS name for the created service within the expected time.")
+        return None
     
     return urls
-
-
 
 
 class RayClusterOperator(BaseOperator):
