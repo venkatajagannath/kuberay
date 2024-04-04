@@ -29,12 +29,17 @@ class RayJobTrigger(BaseTrigger):
     async def run(self) -> AsyncIterator[TriggerEvent]:
         if not self.job_id:
             raise AirflowException("Job_id is not provided")
+        
+        logger.info(f"Polling for {self.job_id} every {self.poll_interval} seconds...")
 
         client = JobSubmissionClient(f"http://{self.url}")
 
         start_time = asyncio.get_running_loop().time()
         while True:
             status = client.get_job_status(self.job_id)
+
+            logger.info(f"Job id {self.job_id} is {status}")
+
             if status in self.status_to_wait_for:
                 logger.info(f"Job {self.job_id} status: {status}")
                 logs = client.get_job_logs(self.job_id)
