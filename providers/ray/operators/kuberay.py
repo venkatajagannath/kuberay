@@ -46,45 +46,39 @@ def create_service_and_get_url(namespace="default", yaml_file="ray-head-service.
     logging.info("Waiting for LoadBalancer to get an external IP. This may take a few minutes...")
     time.sleep(60)  # Simple wait; consider implementing a retry loop
 
-    """service = v1.read_namespaced_service(name=created_service.metadata.name, namespace=namespace)
-    external_ip = service.status.load_balancer.ingress[0].ip
-    port = service.spec.ports[0].port
-
-    url = f"http://{external_ip}:{port}"
-    logging.info(f"Service URL: {url}")"""
-
     max_retries = 30  # For example, retry for up to 5 minutes
     retry_interval = 30  # Retry every 10 seconds
 
     service = None
+    external_ip = None
 
-    for _ in range(max_retries):
-        logging.info(f"Waiting for service creation : {created_service.metadata.name}")
-        try:
-            service = v1.read_namespaced_service(name=created_service.metadata.name, namespace=namespace)
-            # If the service is found, break out of the loop
-            if service:
-                external_ip = service.status.load_balancer.ingress[0].ip
+    for attempt in range(max_retries):
+        logging.info(f"Attempt {attempt + 1}: Checking for service's external IP...")
+        service = v1.read_namespaced_service(name=created_service.metadata.name, namespace=namespace)
+        
+        if service.status.load_balancer.ingress:
+            external_ip = service.status.load_balancer.ingress[0].ip
+            if external_ip:
+                logging.info(f"External IP found: {external_ip}")
                 port = service.spec.ports[0].port
 
                 urls = [f"http://{external_ip}:{port.port}" for port in service.spec.ports]
-                logging.info(f"Service URL: {url}")
+
+                for url in urls:
+                    logging.info(f"Service URL: {url}")
                 break
-        except client.exceptions.ApiException as e:
-            if e.status != 404:
-                # If it's an error other than 404, raise it
-                raise e
-            # If it's a 404 error, wait and retry
+        else:
+            logging.info("External IP not yet available, waiting...")
             time.sleep(retry_interval)
-        time.sleep(retry_interval)
-        
-    if not service:
-        # If we exhausted retries, raise an exception or handle it as necessary
-        logging.error("Failed to find the created service within the expected time.")
-        #raise Exception("Service not found after retries")
-
-
+    
+    if not external_ip:
+        logging.error("Failed to find the external IP for the created service within the expected time.")
+        return None  # Or handle the error as needed
+    
     return urls
+
+
+
 
 class RayClusterOperator(BaseOperator):
 
