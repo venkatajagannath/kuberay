@@ -5,6 +5,7 @@ from ray.job_submission import JobSubmissionClient, JobStatus
 from airflow.triggers.base import BaseTrigger, TriggerEvent
 from airflow.exceptions import AirflowException
 
+import logging
 logger = logging.getLogger("RayJobTrigger")
 logger.setLevel(logging.INFO)
 

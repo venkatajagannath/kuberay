@@ -396,17 +396,6 @@ class SubmitRayJob(BaseOperator):
         self.client.delete_job(self.job_id)
         return self.client.tail_job_logs(self.job_id)
 
-    def wait_until_status(self, timeout_seconds=5):
-        start = time.time()
-        while time.time() - start <= timeout_seconds:
-            status = self.client.get_job_status(self.job_id)
-            logs = self.client.get_job_logs(self.job_id)
-            print(logs)
-            print(f"status: {status}")
-            if status in self.status_to_wait_for:
-                break
-            time.sleep(1)
-
     def execute(self,context : Context):
 
         if not self.client:
