@@ -60,12 +60,13 @@ submit_ray_job = SubmitRayJob(task_id="SubmitRayJob",
                               env = {},
                               dag = dag,)
 
-delete_eks_cluster = DeleteEKSCluster(task_id="DeleteEKSCluster",
+"""delete_eks_cluster = DeleteEKSCluster(task_id="DeleteEKSCluster",
                                       cluster_name=CLUSTERNAME,
                                       region=REGION,
                                       env = {},
-                                      dag = dag,)
+                                      dag = dag,)"""
 
-create_eks_cluster.as_setup() >> ray_cluster >> submit_ray_job >> delete_eks_cluster.as_teardown()
-create_eks_cluster >> delete_eks_cluster
+create_eks_cluster >> ray_cluster >> submit_ray_job
+"""create_eks_cluster.as_setup() >> ray_cluster >> submit_ray_job >> delete_eks_cluster.as_teardown()
+create_eks_cluster >> delete_eks_cluster"""
 
