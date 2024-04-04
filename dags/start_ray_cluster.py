@@ -29,6 +29,7 @@ REGION = 'us-east-2'
 K8SPEC = '/usr/local/airflow/dags/scripts/k8.yaml'
 RAY_SPEC = '/usr/local/airflow/dags/scripts/ray.yaml'
 RAY_SVC = '/usr/local/airflow/dags/scripts/ray-service.yaml'
+RAY_SCRIPTS = '/usr/local/airflow/dags/ray_scripts'
 
 dag = DAG(
     'start_ray_cluster',
@@ -55,7 +56,7 @@ ray_cluster = RayClusterOperator_(task_id="RayClusterOperator",
 submit_ray_job = SubmitRayJob(task_id="SubmitRayJob",
                               url = "{{ task_instance.xcom_pull(task_ids='RayClusterOperator', key='url1') }}",
                               entrypoint='python script.py',
-                              wd='./ray_scripts',
+                              wd=RAY_SCRIPTS,
                               env = {},
                               dag = dag,)
 

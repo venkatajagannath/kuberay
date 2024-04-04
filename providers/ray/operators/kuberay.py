@@ -419,8 +419,55 @@ class SubmitRayJob(BaseOperator):
 
 
 class DeployRayService(BaseOperator):
-    def __init__(self):
-        pass
+    def __init__(self,*,
+                 url: str,
+                 namespace: str,
+                 ray_serve_svc: str,
+                 entrypoint: str,
+                 wd: str,
+                 env: dict = None,
+                 **kwargs):
+        
+        super().__init__(**kwargs)
+        self.url = url
+        self.entrypoint = entrypoint
+        self.namespace = namespace
+        self.wd = wd
+        self.ray_serve_svc = ray_serve_svc
+        self.env = env if env is not None else {}
+        self.client = None
+        self.job_id = None
+        self.status_to_wait_for = {JobStatus.SUCCEEDED, JobStatus.STOPPED, JobStatus.FAILED}
 
-    def execute(self):
-        pass
+    def wait_until_status(self, timeout_seconds=5):
+        start = time.time()
+        while time.time() - start <= timeout_seconds:
+            status = self.client.get_job_status(self.job_id)
+            logs = self.client.get_job_logs(self.job_id)
+            print(logs)
+            print(f"status: {status}")
+            if status in self.status_to_wait_for:
+                break
+            time.sleep(1)
+
+    def deploy_svc(self, namespace: str, svc_yaml: str):
+
+        logging.info("Creating service with yaml file: "+ yaml)
+
+        return create_service_and_get_url(namespace, yaml)
+
+    def execute(self,context : Context):
+
+        if not self.client:
+            self.client = JobSubmissionClient(f"{self.url}")
+
+        job_id = self.client.submit_job(
+            entrypoint= self.entrypoint,
+            runtime_env={"working_dir": self.wd})
+        self.job_id = job_id
+
+        self.wait_until_status()
+
+        self.deploy_svc(self.namespace, self.ray_serve_svc)
+        
+        return self.client.tail_job_logs(job_id)
