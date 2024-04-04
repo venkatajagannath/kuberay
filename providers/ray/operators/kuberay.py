@@ -394,13 +394,14 @@ class SubmitRayJob(BaseOperator):
                  entrypoint: str = None,
                  wd: str = None,
                  env: dict = None,
-                 **kwargs,):
+                 **kwargs):
         
         super().__init__(**kwargs)
         self.url = url
         self.entrypoint = entrypoint
-        self.wd = wd,
-        self.client = JobSubmissionClient(f"http://{self.url}")
+        self.wd = wd
+        self.env = env if env is not None else {}
+        self.client = None
         self.job_id = None
         self.status_to_wait_for = {JobStatus.SUCCEEDED, JobStatus.STOPPED, JobStatus.FAILED}
     
@@ -420,6 +421,9 @@ class SubmitRayJob(BaseOperator):
             time.sleep(1)
 
     def execute(self):
+
+        if not self.client:
+            self.client = JobSubmissionClient(f"http://{self.url}")
 
         job_id = self.client.submit_job(
             entrypoint= self.entrypoint,
