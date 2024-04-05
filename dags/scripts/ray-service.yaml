@@ -16,4 +16,12 @@ spec:
     protocol: TCP
     port: 10001
     targetPort: 10001
+  - name: gcs
+    protocol: TCP
+    port: 6379
+    targetPort: 6379
+  - name: serve
+    protocol: TCP
+    port: 8000
+    targetPort: 8000
   type: LoadBalancer
