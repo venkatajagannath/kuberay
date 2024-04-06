@@ -51,19 +51,33 @@ def create_service_and_get_url(namespace="default", yaml_file="ray-head-service.
         if service.status.load_balancer.ingress and service.status.load_balancer.ingress[0].hostname:
             external_dns = service.status.load_balancer.ingress[0].hostname
             logging.info(f"External DNS name found: {external_dns}")
-            urls = [f"http://{external_dns}:{port.port}" for port in service.spec.ports]
-
-            for url in urls:
-                logging.info(f"Service URL: {url}")
             break
         else:
             logging.info("External DNS name not yet available, waiting...")
             time.sleep(retry_interval)
-    
+
     if not external_dns:
         logging.error("Failed to find the external DNS name for the created service within the expected time.")
         return None
     
+    # Wait for the endpoints to be ready
+    for attempt in range(max_retries):
+        endpoints = v1.read_namespaced_endpoints(name=created_service.metadata.name, namespace=namespace)
+        if endpoints.subsets and all([subset.addresses for subset in endpoints.subsets]):
+            logging.info("All associated pods are ready.")
+            break
+        else:
+            logging.info(f"Pods not ready, waiting... (Attempt {attempt + 1})")
+            time.sleep(retry_interval)
+    else:
+        logging.error("Pods failed to become ready within the expected time.")
+        return None
+
+    # Assuming all ports in the service need to be accessed
+    urls = [f"http://{external_dns}:{port.port}" for port in service.spec.ports]
+    for url in urls:
+        logging.info(f"Service URL: {url}")
+
     return urls
 
 
