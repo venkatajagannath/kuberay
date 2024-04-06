@@ -96,6 +96,14 @@ class CreateEKSCluster(BaseOperator):
 
         return result.output
     
+    def update_kubeconfig(self, env: dict):
+
+        command = f"eksctl utils write-kubeconfig --cluster={self.cluster_name} --region={self.region}"
+        
+        result = self.execute_bash_command(command, env)
+        logging.info(result)
+        return result
+
     def create_eks_cluster(self,env : dict):
 
         command = f"""
@@ -111,6 +119,8 @@ class CreateEKSCluster(BaseOperator):
         env = self.get_env(context)
         
         self.create_eks_cluster(env)
+
+        self.update_kubeconfig(env)
 
         return
     
