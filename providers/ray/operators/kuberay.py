@@ -23,7 +23,7 @@ from ray.job_submission import JobSubmissionClient, JobStatus
 import time
 
 import logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 from kubernetes import client, config, watch
 import yaml
@@ -271,7 +271,7 @@ class SubmitRayJob(BaseOperator):
         return self.job_id
     
     def execute_complete(self, context: Context, event: Any = None) -> None:
-
+        
         if event["status"] == "error" or event["status"] == "cancelled":
             logging.info(f"Ray job {self.job_id} execution not completed...")
             raise AirflowException(event["message"])

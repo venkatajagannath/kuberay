@@ -49,8 +49,10 @@ class RayJobTrigger(BaseTrigger):
                     )
                     return
                 await asyncio.sleep(self.poll_interval)
+            logger.info(f"Job {self.job_id}completed execution before the timeout period...")
             
             completed_status = await client.get_job_status(self.job_id)
+            logger.info(f"Status of completed job {self.job_id} is: {completed_status}")
             if completed_status == JobStatus.SUCCEEDED:
                 yield TriggerEvent(
                     {
