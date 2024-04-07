@@ -285,7 +285,7 @@ class SubmitRayJob(BaseOperator):
     
     def get_current_status(self):
         
-        job_status = self.client.get_job_status(self.job_id).status
+        job_status = self.client.get_job_status(self.job_id)
         logger.info(f"Current job status for {self.job_id} is: {job_status}")
         return job_status
     
