@@ -17,13 +17,12 @@ import shutil
 import warnings
 from functools import cached_property
 from typing import TYPE_CHECKING, Container, Sequence, cast
-import logging
 import tempfile
 from ray.job_submission import JobSubmissionClient, JobStatus
 import time
 
 import logging
-logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("kuberay.py")
 
 from kubernetes import client, config, watch
 import yaml
@@ -37,7 +36,7 @@ def create_service_and_get_url(namespace="default", yaml_file="ray-head-service.
 
     v1 = client.CoreV1Api()
     created_service = v1.create_namespaced_service(namespace=namespace, body=service_data)
-    logging.info(f"Service {created_service.metadata.name} created. Waiting for an external DNS name...")
+    logger.info(f"Service {created_service.metadata.name} created. Waiting for an external DNS name...")
 
     max_retries = 30
     retry_interval = 40
@@ -45,38 +44,38 @@ def create_service_and_get_url(namespace="default", yaml_file="ray-head-service.
     external_dns = None
 
     for attempt in range(max_retries):
-        logging.info(f"Attempt {attempt + 1}: Checking for service's external DNS name...")
+        logger.info(f"Attempt {attempt + 1}: Checking for service's external DNS name...")
         service = v1.read_namespaced_service(name=created_service.metadata.name, namespace=namespace)
         
         if service.status.load_balancer.ingress and service.status.load_balancer.ingress[0].hostname:
             external_dns = service.status.load_balancer.ingress[0].hostname
-            logging.info(f"External DNS name found: {external_dns}")
+            logger.info(f"External DNS name found: {external_dns}")
             break
         else:
-            logging.info("External DNS name not yet available, waiting...")
+            logger.info("External DNS name not yet available, waiting...")
             time.sleep(retry_interval)
 
     if not external_dns:
-        logging.error("Failed to find the external DNS name for the created service within the expected time.")
+        logger.error("Failed to find the external DNS name for the created service within the expected time.")
         return None
     
     # Wait for the endpoints to be ready
     for attempt in range(max_retries):
         endpoints = v1.read_namespaced_endpoints(name=created_service.metadata.name, namespace=namespace)
         if endpoints.subsets and all([subset.addresses for subset in endpoints.subsets]):
-            logging.info("All associated pods are ready.")
+            logger.info("All associated pods are ready.")
             break
         else:
-            logging.info(f"Pods not ready, waiting... (Attempt {attempt + 1})")
+            logger.info(f"Pods not ready, waiting... (Attempt {attempt + 1})")
             time.sleep(retry_interval)
     else:
-        logging.error("Pods failed to become ready within the expected time.")
+        logger.error("Pods failed to become ready within the expected time.")
         return None
 
     # Assuming all ports in the service need to be accessed
     urls = [f"http://{external_dns}:{port.port}" for port in service.spec.ports]
     for url in urls:
-        logging.info(f"Service URL: {url}")
+        logger.info(f"Service URL: {url}")
 
     return urls
 
@@ -146,7 +145,7 @@ class RayClusterOperator(BaseOperator):
         
         bash_path = shutil.which("bash") or "bash"
 
-        logging.info("Running bash command: "+ bash_command)
+        logger.info("Running bash command: "+ bash_command)
 
         result = self.subprocess_hook.run_command(
             command=[bash_path, "-c", bash_command],
@@ -167,7 +166,7 @@ class RayClusterOperator(BaseOperator):
         command = f"eksctl utils write-kubeconfig --cluster={self.cluster_name} --region={self.region}"
         
         result = self.execute_bash_command(command, env)
-        logging.info(result)
+        logger.info(result)
         return result
 
     def add_kuberay_operator(self, env: dict):
@@ -180,7 +179,7 @@ class RayClusterOperator(BaseOperator):
         """
         
         result = self.execute_bash_command(helm_commands, env)
-        logging.info(result)
+        logger.info(result)
         return result
     
     def create_ray_cluster(self, env: dict):
@@ -188,12 +187,12 @@ class RayClusterOperator(BaseOperator):
         command = f"kubectl apply -f {self.ray_cluster_yaml} -n {self.ray_namespace}"
         
         result = self.execute_bash_command(command, env)
-        logging.info(result)
+        logger.info(result)
         return result
     
     def create_k8_service(self, namespace: str, yaml : str):
 
-        logging.info("Creating service with yaml file: "+ yaml)
+        logger.info("Creating service with yaml file: "+ yaml)
 
         return create_service_and_get_url(namespace, yaml)
     
@@ -205,7 +204,7 @@ class RayClusterOperator(BaseOperator):
 
         self.create_ray_cluster(env)
 
-        logging.info("Creating services ...")
+        logger.info("Creating services ...")
 
         # Creating K8 services
         urls = self.create_k8_service(self.ray_namespace, self.ray_svc_yaml)
@@ -216,7 +215,7 @@ class RayClusterOperator(BaseOperator):
                 context['task_instance'].xcom_push(key=key, value=url)
         else:
             # Handle the case when urls is None or empty
-            logging.info("No URLs to push to XCom.")
+            logger.info("No URLs to push to XCom.")
 
         return
 
@@ -249,35 +248,53 @@ class SubmitRayJob(BaseOperator):
     def execute(self,context : Context):
 
         if not self.client:
-            logging.info(f"URL is: {self.url}")
+            logger.info(f"URL is: {self.url}")
             self.client = JobSubmissionClient(f"{self.url}")
 
         self.job_id = self.client.submit_job(
             entrypoint= self.entrypoint,
             runtime_env={"working_dir": self.wd})  #https://docs.ray.io/en/latest/ray-core/handling-dependencies.html#runtime-environments
         
-        logging.info(f"Ray job submitted with id:{self.job_id}")
+        logger.info(f"Ray job submitted with id:{self.job_id}")
 
-        self.defer(
-            timeout= self.execution_timeout,
-            trigger= RayJobTrigger(
-                url = self.url,
-                job_id = self.job_id,
-                end_time= time.time() + self.timeout,
-                poll_interval=2
-            ),
-            method_name="execute_complete",)
+        current_status = self.get_current_status()
+        if current_status in (JobStatus.RUNNING, JobStatus.PENDING):
+            logger.info("Deferring the polling to RayJobTrigger...")
+            self.defer(
+                timeout= 60000,
+                trigger= RayJobTrigger(
+                    url = self.url,
+                    job_id = self.job_id,
+                    end_time= time.time() + self.timeout,
+                    poll_interval=2
+                ),
+                method_name="execute_complete",)
+        elif current_status == JobStatus.SUCCEEDED:
+            logger.info("Job %s completed successfully", self.job_id)
+            return
+        elif current_status == JobStatus.FAILED:
+            raise AirflowException(f"Job failed:\n{self.job_id}")
+        elif current_status == JobStatus.STOPPED:
+            raise AirflowException(f"Job was cancelled:\n{self.job_id}")
+        else:
+            raise Exception(f"Encountered unexpected state `{current_status}` for job_id `{self.job_id}")
         
         return self.job_id
+    
+    def get_current_status(self):
+        
+        job_status = self.client.get_job_status(self.job_id)
+        logger.info(f"Current job status for {self.job_id} is: {job_status}")
+        return job_status
     
     def execute_complete(self, context: Context, event: Any = None) -> None:
         
         if event["status"] == "error" or event["status"] == "cancelled":
-            logging.info(f"Ray job {self.job_id} execution not completed...")
+            logger.info(f"Ray job {self.job_id} execution not completed...")
             raise AirflowException(event["message"])
         elif event["status"] == "success":
-            logging.info(f"Ray job {self.job_id} execution succeeded ...")
-            return event["message"]
+            logger.info(f"Ray job {self.job_id} execution succeeded ...")
+            return None
         
 
 
@@ -316,7 +333,7 @@ class DeployRayService(BaseOperator):
 
     def deploy_svc(self, namespace: str, svc_yaml: str):
 
-        logging.info("Creating service with yaml file: "+ yaml)
+        logger.info("Creating service with yaml file: "+ yaml)
 
         return create_service_and_get_url(namespace, yaml)
 
