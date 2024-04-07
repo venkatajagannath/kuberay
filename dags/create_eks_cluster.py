@@ -89,7 +89,7 @@ with DAG(
 
         setup_tasks = create_launch_template >> create_cluster
 
-        ray_cluster_setup = RayClusterOperator(
+        """ray_cluster_setup = RayClusterOperator(
                                 task_id="RayClusterOperator",
                                  cluster_name=CLUSTER_NAME,
                                  region="us-east-2",
@@ -98,7 +98,7 @@ with DAG(
                                  ray_cluster_yaml="/usr/local/airflow/dags/scripts/ray.yaml",
                                  eks_delete_cluster=False,
                                  env = {},
-                                 dag = dag,)
+                                 dag = dag,)"""
 
         """start_pod = EksPodOperator(
             task_id="start_pod",
@@ -145,5 +145,5 @@ with DAG(
     #create_cluster >> delete_nodegroup_and_cluster
 
     # task dependencies
-    setup_tasks >> ray_cluster_setup #>> start_pod #>> teardown_tasks
+    setup_tasks #>> ray_cluster_setup #>> start_pod #>> teardown_tasks
 
