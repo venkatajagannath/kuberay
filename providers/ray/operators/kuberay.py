@@ -91,7 +91,7 @@ class RayClusterOperator(BaseOperator):
                  ray_cluster_yaml : str = None,
                  ray_svc_yaml : str = None,
                  env: dict = None,
-                 **kwargs,):
+                 **kwargs):
         
         super().__init__(**kwargs)
         self.cluster_name = cluster_name
