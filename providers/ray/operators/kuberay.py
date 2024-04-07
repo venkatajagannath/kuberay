@@ -200,6 +200,8 @@ class RayClusterOperator(BaseOperator):
 
         env = self.get_env(context)
 
+        self.update_kubeconfig(env)
+
         self.add_kuberay_operator(env)
 
         self.create_ray_cluster(env)
