@@ -5,59 +5,86 @@ from airflow.triggers.base import BaseTrigger, TriggerEvent
 from airflow.exceptions import AirflowException
 from ray.dashboard.modules.job.sdk import JobSubmissionClient, JobStatus
 import logging
+import time
 
-logger = logging.getLogger("airflow.task")
+logger = logging.getLogger("kuberay.py")
 
 class RayJobTrigger(BaseTrigger):
     def __init__(self,
                  job_id: str,
                  url: str,
-                 timeout: int = 600,
+                 end_time: float,
                  poll_interval: int = 30):
         super().__init__()
         self.job_id = job_id
         self.url = url
-        self.timeout = timeout
+        self.end_time = end_time
         self.poll_interval = poll_interval
-        # Note: Assuming JobStatus contains the required status attributes
-        self.final_statuses = {JobStatus.SUCCEEDED, JobStatus.STOPPED, JobStatus.FAILED}
 
     def serialize(self) -> tuple[str, dict[str, Any]]:
         return ("providers.ray.triggers.kuberay.RayJobTrigger", {
             "job_id": self.job_id,
             "url": self.url,
-            "timeout": self.timeout,
+            "end_time": self.end_time,
             "poll_interval": self.poll_interval
         })
 
     async def run(self) -> AsyncIterator[TriggerEvent]:
         if not self.job_id:
-            raise AirflowException("Job_id is not provided")
+            yield TriggerEvent({"status": "error", "message": "No job_id provided to async trigger", "job_id": self.job_id})
 
-        logger.info(f"Polling for job {self.job_id} every {self.poll_interval} seconds...")
-        client = JobSubmissionClient(f"http://{self.url}")
+        try:
+            logger.info(f"Polling for job {self.job_id} every {self.poll_interval} seconds...")
+            client = JobSubmissionClient(f"http://{self.url}")
 
-        start_time = asyncio.get_running_loop().time()
-        while True:
-            current_status = client.get_job_status(self.job_id).status
-            logger.info(f"Job id {self.job_id} status: {current_status}")
+            while await self.get_current_status(client=client):
+                if self.end_time < time.time():
+                    yield TriggerEvent(
+                        {
+                            "status": "error",
+                            "message": f"Job run {self.job_id} has not reached a terminal status after "
+                            f"{self.end_time} seconds.",
+                            "job_id": self.job_id,
+                        }
+                    )
+                    return
+                await asyncio.sleep(self.poll_interval)
+            
+            completed_status = await client.get_job_status(self.job_id)
+            if completed_status == JobStatus.SUCCEEDED:
+                yield TriggerEvent(
+                    {
+                        "status": "success",
+                        "message": f"Job run {self.job_id} has completed successfully.",
+                        "job_id": self.job_id,
+                    }
+                )
+            elif completed_status == JobStatus.STOPPED:
+                yield TriggerEvent(
+                    {
+                        "status": "cancelled",
+                        "message": f"Job run {self.job_id} has been stopped.",
+                        "job_id": self.job_id,
+                    }
+                )
+            else:
+                yield TriggerEvent(
+                    {
+                        "status": "error",
+                        "message": f"Job run {self.job_id} has failed.",
+                        "job_id": self.job_id,
+                    }
+                )
+        except Exception as e:
+            yield TriggerEvent({"status": "error", "message": str(e), "job_id": self.job_id})
+        
+    async def get_current_status(self, client: JobSubmissionClient) -> bool:
 
-            if current_status in self.final_statuses:
-                logger.info(f"Final status for job {self.job_id}: {current_status}")
-                logs = client.get_job_logs(self.job_id)
-                logger.info(f"Final logs for job {self.job_id}: {logs}")
-                yield TriggerEvent({"status": current_status.value, "job_id": self.job_id})
-                break
+        job_status = await client.get_job_status(self.job_id)
+        logging.info(f"Current job status for {self.job_id} is: {job_status}")
+        if job_status in (JobStatus.RUNNING,JobStatus.PENDING):
+            return True
+        else:
+            return False
 
-            if (asyncio.get_running_loop().time() - start_time) > self.timeout:
-                logger.warning(f"Job {self.job_id} timed out after {self.timeout} seconds.")
-                yield TriggerEvent({"status": "timeout", "job_id": self.job_id})
-                break
-
-            # Optionally, fetch and log intermediate logs at each polling interval.
-            # Commented out to prevent log spamming. Uncomment if needed.
-            logs = client.get_job_logs(self.job_id)
-            logger.debug(f"Interim logs for job {self.job_id}: {logs}")
-
-            await asyncio.sleep(self.poll_interval)
 
