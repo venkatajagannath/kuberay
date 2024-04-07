@@ -35,7 +35,7 @@ class RayJobTrigger(BaseTrigger):
 
         try:
             logger.info(f"Polling for job {self.job_id} every {self.poll_interval} seconds...")
-            client = JobSubmissionClient(f"http://{self.url}")
+            client = JobSubmissionClient(f"{self.url}")
 
             while await self.get_current_status(client=client):
                 if self.end_time < time.time():

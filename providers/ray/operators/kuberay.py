@@ -74,7 +74,7 @@ def create_service_and_get_url(namespace="default", yaml_file="ray-head-service.
         return None
 
     # Assuming all ports in the service need to be accessed
-    urls = [f"{external_dns}:{port.port}" for port in service.spec.ports]
+    urls = [f"http://{external_dns}:{port.port}" for port in service.spec.ports]
     for url in urls:
         logging.info(f"Service URL: {url}")
 
@@ -249,6 +249,7 @@ class SubmitRayJob(BaseOperator):
     def execute(self,context : Context):
 
         if not self.client:
+            logging.info(f"URL is: {self.url}")
             self.client = JobSubmissionClient(f"{self.url}")
 
         self.job_id = self.client.submit_job(
