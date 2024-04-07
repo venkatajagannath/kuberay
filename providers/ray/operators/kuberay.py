@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, Container, Sequence, cast
 import tempfile
 from ray.job_submission import JobSubmissionClient, JobStatus
 import time
+from datetime import timedelta
 
 import logging
 logger = logging.getLogger("kuberay.py")
@@ -263,7 +264,7 @@ class SubmitRayJob(BaseOperator):
         if current_status in (JobStatus.RUNNING, JobStatus.PENDING):
             logger.info("Deferring the polling to RayJobTrigger...")
             self.defer(
-                timeout= 60000,
+                timeout= timedelta(hours=1),
                 trigger= RayJobTrigger(
                     url = self.url,
                     job_id = self.job_id,
