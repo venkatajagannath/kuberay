@@ -56,8 +56,8 @@ class RayJobTrigger(BaseTrigger):
 
             # Optionally, fetch and log intermediate logs at each polling interval.
             # Commented out to prevent log spamming. Uncomment if needed.
-            # logs = client.get_job_logs(self.job_id)
-            # logger.debug(f"Interim logs for job {self.job_id}: {logs}")
+            logs = client.get_job_logs(self.job_id)
+            logger.debug(f"Interim logs for job {self.job_id}: {logs}")
 
             await asyncio.sleep(self.poll_interval)
 
