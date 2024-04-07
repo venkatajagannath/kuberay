@@ -262,7 +262,7 @@ class SubmitRayJob(BaseOperator):
             trigger= RayJobTrigger(
                 url = self.url,
                 job_id = self.job_id,
-                timeout= self.timeout,
+                end_time= time.time() + self.timeout,
                 poll_interval=2
             ),
             method_name="execute_complete",)
