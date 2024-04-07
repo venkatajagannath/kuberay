@@ -37,7 +37,7 @@ class RayJobTrigger(BaseTrigger):
             logger.info(f"Polling for job {self.job_id} every {self.poll_interval} seconds...")
             client = JobSubmissionClient(f"{self.url}")
 
-            while await self.get_current_status(client=client):
+            while self.get_current_status(client=client):
                 if self.end_time < time.time():
                     yield TriggerEvent(
                         {
@@ -51,7 +51,7 @@ class RayJobTrigger(BaseTrigger):
                 await asyncio.sleep(self.poll_interval)
             logger.info(f"Job {self.job_id}completed execution before the timeout period...")
             
-            completed_status = await client.get_job_status(self.job_id)
+            completed_status = client.get_job_status(self.job_id)
             logger.info(f"Status of completed job {self.job_id} is: {completed_status}")
             if completed_status == JobStatus.SUCCEEDED:
                 yield TriggerEvent(
@@ -80,9 +80,9 @@ class RayJobTrigger(BaseTrigger):
         except Exception as e:
             yield TriggerEvent({"status": "error", "message": str(e), "job_id": self.job_id})
         
-    async def get_current_status(self, client: JobSubmissionClient) -> bool:
+    def get_current_status(self, client: JobSubmissionClient) -> bool:
 
-        job_status = await client.get_job_status(self.job_id)
+        job_status = client.get_job_status(self.job_id)
         logging.info(f"Current job status for {self.job_id} is: {job_status}")
         if job_status in (JobStatus.RUNNING,JobStatus.PENDING):
             return True
