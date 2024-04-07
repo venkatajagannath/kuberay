@@ -271,10 +271,10 @@ class SubmitRayJob(BaseOperator):
     
     def execute_complete(self, context: Context, event: Any = None) -> None:
 
-        if event["status"] == JobStatus.FAILED or event["status"] == JobStatus.STOPPED:
-            logging.info(f"Ray job {self.job_id} execution failed...")
+        if event["status"] == "error" or event["status"] == "cancelled":
+            logging.info(f"Ray job {self.job_id} execution not completed...")
             raise AirflowException(event["message"])
-        elif event["status"] == JobStatus.SUCCEEDED:
+        elif event["status"] == "success":
             logging.info(f"Ray job {self.job_id} execution succeeded ...")
             return event["message"]
         
