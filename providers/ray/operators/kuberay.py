@@ -85,11 +85,11 @@ class RayClusterOperator(BaseOperator):
 
 
     def __init__(self,*,
-                 cluster_name: str = None,
-                 region: str = None,
-                 ray_namespace: str = None,
-                 ray_cluster_yaml : str = None,
-                 ray_svc_yaml : str = None,
+                 cluster_name: str,
+                 region: str,
+                 ray_namespace: str,
+                 ray_cluster_yaml : str,
+                 ray_svc_yaml : str,
                  env: dict = None,
                  **kwargs):
         
