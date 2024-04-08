@@ -26,16 +26,16 @@ default_args = {
 
 CLUSTERNAME = 'RayCluster'
 REGION = 'us-east-2'
-K8SPEC = '/usr/local/airflow/dags/scripts/k8.yaml'
-RAY_SPEC = '/usr/local/airflow/dags/scripts/ray.yaml'
+K8SPEC = '/usr/local/airflow/dags/scripts/k8-gpu.yaml'
+RAY_SPEC = '/usr/local/airflow/dags/scripts/ray-gpu.yaml'
 RAY_SVC = '/usr/local/airflow/dags/scripts/ray-service.yaml'
 RAY_SCRIPTS = '/usr/local/airflow/dags/ray_scripts'
 
 dag = DAG(
-    'start_ray_cluster',
+    'run_gpu_task',
     default_args=default_args,
-    description='Setup EKS cluster with eksctl and deploy KubeRay operator',
-    schedule_interval='@daily',
+    description='Setup EKS cluster with eksctl and run a gpu task on the ray cluster',
+    schedule_interval='@Once',
 )
 
 create_eks_cluster = CreateEKSCluster(task_id="CreateEKSCluster",
@@ -51,12 +51,12 @@ ray_cluster = RayClusterOperator(task_id="RayClusterOperator",
                                  ray_namespace="ray",
                                  ray_cluster_yaml=RAY_SPEC,
                                  ray_svc_yaml= RAY_SVC,
-                                 use_gpu=False,
+                                 use_gpu=True,
                                  env = {},
                                  dag = dag,)
 submit_ray_job = SubmitRayJob(task_id="SubmitRayJob",
                               url = "{{ task_instance.xcom_pull(task_ids='RayClusterOperator', key='url1') }}",
-                              entrypoint='python script.py',
+                              entrypoint='python script-gpu.py',
                               wd=RAY_SCRIPTS,
                               env = {},
                               dag = dag,)

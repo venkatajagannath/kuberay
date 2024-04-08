@@ -90,6 +90,7 @@ class RayClusterOperator(BaseOperator):
                  ray_namespace: str,
                  ray_cluster_yaml : str,
                  ray_svc_yaml : str,
+                 use_gpu: bool = False,
                  env: dict = None,
                  **kwargs):
         
@@ -98,6 +99,7 @@ class RayClusterOperator(BaseOperator):
         self.region = region
         self.ray_namespace = ray_namespace
         self.ray_svc_yaml = ray_svc_yaml
+        self.use_gpu = use_gpu
         self.env = env
         self.output_encoding: str = "utf-8"
         self.cwd = tempfile.mkdtemp(prefix="tmp")
@@ -191,6 +193,14 @@ class RayClusterOperator(BaseOperator):
         logger.info(result)
         return result
     
+    def add_nvidia_device(self):
+
+        command = "kubectl create -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.9.0/nvidia-device-plugin.yml"
+
+        result = self.execute_bash_command(command,{})
+        logger.info(result)
+        return result
+    
     def create_k8_service(self, namespace: str, yaml : str):
 
         logger.info("Creating service with yaml file: "+ yaml)
@@ -206,6 +216,9 @@ class RayClusterOperator(BaseOperator):
         self.add_kuberay_operator(env)
 
         self.create_ray_cluster(env)
+
+        if self.use_gpu:
+            self.add_nvidia_device(env)
 
         logger.info("Creating services ...")
 
