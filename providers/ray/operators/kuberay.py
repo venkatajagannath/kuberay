@@ -193,11 +193,11 @@ class RayClusterOperator(BaseOperator):
         logger.info(result)
         return result
     
-    def add_nvidia_device(self):
+    def add_nvidia_device(self,env: dict):
 
         command = "kubectl create -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.9.0/nvidia-device-plugin.yml"
 
-        result = self.execute_bash_command(command,{})
+        result = self.execute_bash_command(command,env)
         logger.info(result)
         return result
     
