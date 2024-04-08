@@ -175,12 +175,11 @@ class RayClusterOperator(BaseOperator):
     def add_kuberay_operator(self, env: dict):
         # Helm commands to add repo, update, and install KubeRay operator
         helm_commands = f"""
-        helm repo add kuberay https://ray-project.github.io/kuberay-helm/ && \
-        helm repo update && \
-        helm install kuberay-operator kuberay/kuberay-operator \
-        --version 1.0.0 --create-namespace --namespace {self.ray_namespace}
-        """
-        
+                    helm repo add kuberay https://ray-project.github.io/kuberay-helm/ && \
+                    helm repo update && \
+                    helm upgrade --install kuberay-operator kuberay/kuberay-operator \
+                    --version 1.0.0 --create-namespace --namespace {self.ray_namespace}
+                    """
         result = self.execute_bash_command(helm_commands, env)
         logger.info(result)
         return result
@@ -195,7 +194,7 @@ class RayClusterOperator(BaseOperator):
     
     def add_nvidia_device(self,env: dict):
 
-        command = "kubectl create -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.9.0/nvidia-device-plugin.yml"
+        command = "kubectl apply -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.9.0/nvidia-device-plugin.yml"
 
         result = self.execute_bash_command(command,env)
         logger.info(result)
