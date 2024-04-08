@@ -8,15 +8,11 @@ metadata:
 managedNodeGroups:
   - name: ng-1-gpu
     instanceType: g4dn.xlarge
-    desiredCapacity: 2
+    desiredCapacity: 4
     minSize: 1
-    maxSize: 3
+    maxSize: 6
     ssh:
       allow: false
     labels:
       lifecycle: Ec2Spot
       intent: gpuWorkloads
-    iam:
-      withAddonPolicies:
-        autoScaler: true
-        albIngress: true

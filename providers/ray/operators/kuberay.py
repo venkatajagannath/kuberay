@@ -71,7 +71,7 @@ def create_service_and_get_url(namespace="default", yaml_file="ray-head-service.
             time.sleep(retry_interval)
     else:
         logger.error("Pods failed to become ready within the expected time.")
-        return None
+        raise AirflowException("Pods failed to become ready within the expected time.")
 
     # Assuming all ports in the service need to be accessed
     urls = [f"http://{external_dns}:{port.port}" for port in service.spec.ports]
