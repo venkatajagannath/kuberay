@@ -13,6 +13,3 @@ managedNodeGroups:
     maxSize: 6
     ssh:
       allow: false
-    labels:
-      lifecycle: Ec2Spot
-      intent: gpuWorkloads
