@@ -90,7 +90,7 @@ class RayClusterOperator(BaseOperator):
                  ray_namespace: str,
                  ray_cluster_yaml : str,
                  ray_svc_yaml : str,
-                 use_gpu: bool = False,
+                 ray_gpu: bool = False,
                  env: dict = None,
                  **kwargs):
         
@@ -99,7 +99,7 @@ class RayClusterOperator(BaseOperator):
         self.region = region
         self.ray_namespace = ray_namespace
         self.ray_svc_yaml = ray_svc_yaml
-        self.use_gpu = use_gpu
+        self.use_gpu = ray_gpu
         self.env = env
         self.output_encoding: str = "utf-8"
         self.cwd = tempfile.mkdtemp(prefix="tmp")

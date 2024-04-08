@@ -51,7 +51,7 @@ ray_cluster = RayClusterOperator(task_id="RayClusterOperator",
                                  ray_namespace="ray",
                                  ray_cluster_yaml=RAY_SPEC,
                                  ray_svc_yaml= RAY_SVC,
-                                 use_gpu=False,
+                                 ray_gpu=False,
                                  env = {},
                                  dag = dag,)
 submit_ray_job = SubmitRayJob(task_id="SubmitRayJob",
