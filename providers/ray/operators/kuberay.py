@@ -258,8 +258,10 @@ class SubmitRayJob(BaseOperator):
         self.status_to_wait_for = {JobStatus.SUCCEEDED, JobStatus.STOPPED, JobStatus.FAILED}
     
     def __del__(self):
-        self.client.delete_job(self.job_id)
-        return self.client.tail_job_logs(self.job_id)
+        if self.client:   
+            return self.client.delete_job(self.job_id)
+        else:
+            return
 
     def execute(self,context : Context):
 
