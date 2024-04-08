@@ -35,7 +35,7 @@ dag = DAG(
     'run_gpu_task',
     default_args=default_args,
     description='Setup EKS cluster with eksctl and run a gpu task on the ray cluster',
-    schedule_interval='@Once',
+    schedule_interval=None,
 )
 
 create_eks_cluster = CreateEKSCluster(task_id="CreateEKSCluster",
