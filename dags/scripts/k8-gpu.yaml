@@ -8,8 +8,8 @@ metadata:
 managedNodeGroups:
   - name: ng-1-gpu
     instanceType: g4dn.xlarge
-    desiredCapacity: 4
+    desiredCapacity: 2
     minSize: 1
-    maxSize: 6
+    maxSize: 3
     ssh:
       allow: false
