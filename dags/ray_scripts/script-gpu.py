@@ -10,9 +10,12 @@ def gpu_task():
     if torch.cuda.is_available():
         # Create a random tensor and move it to GPU
         data = torch.randn([1000, 1000]).cuda()
+        print("Random data generated using torch.randn...")
         # Perform a simple computation (matrix multiplication) on the GPU
         result = torch.matmul(data, data.t())
+        print("Matrix multiplication done with transpose of earlier matrix...")
         # Simulate some processing time
+        print("sleeping using time.sleep()...")
         time.sleep(1)
         # Print a success message
         print("This task successfully performed a GPU-accelerated computation.")

@@ -232,7 +232,7 @@ class RayClusterOperator(BaseOperator):
             # Handle the case when urls is None or empty
             logger.info("No URLs to push to XCom.")
 
-        return
+        return urls
 
 class SubmitRayJob(BaseOperator):
 
@@ -305,11 +305,6 @@ class SubmitRayJob(BaseOperator):
         return job_status
     
     def execute_complete(self, context: Context, event: Any = None) -> None:
-
-        logger.info(f"Logs from the job: \n")
-        logs = self.client.get_job_logs(self.job_id)
-        for line in logs:
-            logger.info(line)
 
         if event["status"] == "error" or event["status"] == "cancelled":
             logger.info(f"Ray job {self.job_id} execution not completed...")
