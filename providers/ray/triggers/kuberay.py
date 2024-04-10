@@ -21,7 +21,7 @@ class RayJobTrigger(BaseTrigger):
         self.end_time = end_time
         self.poll_interval = poll_interval
 
-        print("::group::RayJobTriggerLogs")
+        #print("::group::RayJobTriggerLogs")
 
     def serialize(self) -> tuple[str, dict[str, Any]]:
         return ("providers.ray.triggers.kuberay.RayJobTrigger", {
@@ -60,7 +60,7 @@ class RayJobTrigger(BaseTrigger):
             
             completed_status = client.get_job_status(self.job_id)
             print(f"Status of completed job {self.job_id} is: {completed_status}")
-            print("::endgroup::")
+            #print("::endgroup::")
             if completed_status == JobStatus.SUCCEEDED:
                 yield TriggerEvent(
                     {
