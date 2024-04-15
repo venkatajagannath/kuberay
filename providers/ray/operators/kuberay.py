@@ -1,35 +1,33 @@
 
 from __future__ import annotations
 
-from airflow.models import BaseOperator, BaseOperatorLink, XCom
-from airflow.exceptions import AirflowException
-from airflow.hooks.subprocess import SubprocessHook
-from airflow.utils.operator_helpers import context_to_airflow_vars
-from airflow.utils.context import Context
-from airflow.utils.decorators import apply_defaults
-from airflow.exceptions import AirflowException
-from airflow.decorators import task
-
-from providers.ray.triggers.kuberay import RayJobTrigger
-
+import logging
 import os
 import shutil
-import warnings
-from functools import cached_property
-from typing import TYPE_CHECKING, Container, Sequence, cast
 import tempfile
-from ray.job_submission import JobSubmissionClient, JobStatus
 import time
-from datetime import timedelta
+import warnings
+import yaml
 
-import logging
+from airflow.exceptions import AirflowException
+from airflow.hooks.subprocess import SubprocessHook
+from airflow.models import BaseOperator, BaseOperatorLink, XCom
+from airflow.utils.context import Context
+from airflow.utils.decorators import apply_defaults
+from airflow.utils.operator_helpers import context_to_airflow_vars
+from datetime import timedelta
+from functools import cached_property
+from kubernetes import client, config, watch
+from logging import Logger
+from providers.ray.triggers.kuberay import RayJobTrigger
+from ray.job_submission import JobSubmissionClient, JobStatus
+from typing import TYPE_CHECKING, Container, Sequence, cast
+
+# Set up logging
 logging.basicConfig(level=logging.DEBUG)
 
-from kubernetes import client, config, watch
-import yaml
-import time
 
-def create_service_and_get_url(namespace="default", yaml_file="ray-head-service.yaml"):
+def create_service_and_get_url(log: Logger, namespace="default", yaml_file="ray-head-service.yaml"):
     config.load_kube_config()
 
     with open(yaml_file) as f:
@@ -37,7 +35,7 @@ def create_service_and_get_url(namespace="default", yaml_file="ray-head-service.
 
     v1 = client.CoreV1Api()
     created_service = v1.create_namespaced_service(namespace=namespace, body=service_data)
-    self.log.info(f"Service {created_service.metadata.name} created. Waiting for an external DNS name...")
+    log.info(f"Service {created_service.metadata.name} created. Waiting for an external DNS name...")
 
     max_retries = 30
     retry_interval = 40
@@ -45,38 +43,38 @@ def create_service_and_get_url(namespace="default", yaml_file="ray-head-service.
     external_dns = None
 
     for attempt in range(max_retries):
-        self.log.info(f"Attempt {attempt + 1}: Checking for service's external DNS name...")
+        log.info(f"Attempt {attempt + 1}: Checking for service's external DNS name...")
         service = v1.read_namespaced_service(name=created_service.metadata.name, namespace=namespace)
         
         if service.status.load_balancer.ingress and service.status.load_balancer.ingress[0].hostname:
             external_dns = service.status.load_balancer.ingress[0].hostname
-            self.log.info(f"External DNS name found: {external_dns}")
+            log.info(f"External DNS name found: {external_dns}")
             break
         else:
-            self.log.info("External DNS name not yet available, waiting...")
+            log.info("External DNS name not yet available, waiting...")
             time.sleep(retry_interval)
 
     if not external_dns:
-        self.log.error("Failed to find the external DNS name for the created service within the expected time.")
+        log.error("Failed to find the external DNS name for the created service within the expected time.")
         return None
     
     # Wait for the endpoints to be ready
     for attempt in range(max_retries):
         endpoints = v1.read_namespaced_endpoints(name=created_service.metadata.name, namespace=namespace)
         if endpoints.subsets and all([subset.addresses for subset in endpoints.subsets]):
-            self.log.info("All associated pods are ready.")
+            log.info("All associated pods are ready.")
             break
         else:
-            self.log.info(f"Pods not ready, waiting... (Attempt {attempt + 1})")
+            log.info(f"Pods not ready, waiting... (Attempt {attempt + 1})")
             time.sleep(retry_interval)
     else:
-        self.log.error("Pods failed to become ready within the expected time.")
+        log.error("Pods failed to become ready within the expected time.")
         raise AirflowException("Pods failed to become ready within the expected time.")
 
     # Assuming all ports in the service need to be accessed
     urls = [f"http://{external_dns}:{port.port}" for port in service.spec.ports]
     for url in urls:
-        self.log.info(f"Service URL: {url}")
+        log.info(f"Service URL: {url}")
 
     return urls
 
@@ -222,7 +220,7 @@ class RayClusterOperator(BaseOperator):
         self.log.info("Creating services ...")
 
         # Creating K8 services
-        urls = self.create_k8_service(self.ray_namespace, self.ray_svc_yaml)
+        urls = self.create_k8_service(self.log, self.ray_namespace, self.ray_svc_yaml)
 
         if urls:
             for index, url in enumerate(urls, start=1):
@@ -312,60 +310,3 @@ class SubmitRayJob(BaseOperator):
         elif event["status"] == "success":
             self.log.info(f"Ray job {self.job_id} execution succeeded ...")
             return None
-        
-
-
-
-class DeployRayService(BaseOperator):
-    def __init__(self,*,
-                 url: str,
-                 namespace: str,
-                 ray_serve_svc: str,
-                 entrypoint: str,
-                 wd: str,
-                 env: dict = None,
-                 **kwargs):
-        
-        super().__init__(**kwargs)
-        self.url = url
-        self.entrypoint = entrypoint
-        self.namespace = namespace
-        self.wd = wd
-        self.ray_serve_svc = ray_serve_svc
-        self.env = env if env is not None else {}
-        self.client = None
-        self.job_id = None
-        self.status_to_wait_for = {JobStatus.SUCCEEDED, JobStatus.STOPPED, JobStatus.FAILED}
-
-    def wait_until_status(self, timeout_seconds=5):
-        start = time.time()
-        while time.time() - start <= timeout_seconds:
-            status = self.client.get_job_status(self.job_id)
-            logs = self.client.get_job_logs(self.job_id)
-            self.log.info(logs)
-            self.log.info(f"status: {status}")
-            if status in self.status_to_wait_for:
-                break
-            time.sleep(1)
-
-    def deploy_svc(self, namespace: str, svc_yaml: str):
-
-        self.log.info("Creating service with yaml file: "+ yaml)
-
-        return create_service_and_get_url(namespace, yaml)
-
-    def execute(self,context : Context):
-
-        if not self.client:
-            self.client = JobSubmissionClient(f"{self.url}")
-
-        job_id = self.client.submit_job(
-            entrypoint= self.entrypoint,
-            runtime_env={"working_dir": self.wd})
-        self.job_id = job_id
-
-        self.wait_until_status()
-
-        self.deploy_svc(self.namespace, self.ray_serve_svc)
-        
-        return self.client.tail_job_logs(job_id)
