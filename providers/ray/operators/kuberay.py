@@ -202,7 +202,7 @@ class RayClusterOperator(BaseOperator):
 
         self.log.info("Creating service with yaml file: "+ yaml)
 
-        return create_service_and_get_url(namespace, yaml)
+        return create_service_and_get_url(self.log, namespace, yaml)
     
     def execute(self, context: Context):
 
@@ -220,7 +220,7 @@ class RayClusterOperator(BaseOperator):
         self.log.info("Creating services ...")
 
         # Creating K8 services
-        urls = self.create_k8_service(self.log, self.ray_namespace, self.ray_svc_yaml)
+        urls = self.create_k8_service(self.ray_namespace, self.ray_svc_yaml)
 
         if urls:
             for index, url in enumerate(urls, start=1):
