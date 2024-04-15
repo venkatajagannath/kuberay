@@ -255,8 +255,6 @@ class SubmitRayJob(BaseOperator):
         self.client = None
         self.job_id = None
         self.status_to_wait_for = {JobStatus.SUCCEEDED, JobStatus.STOPPED, JobStatus.FAILED}
-
-        print("::group::SubmitRayJobLogs")
     
     def __del__(self):
         if self.client:   
@@ -265,6 +263,8 @@ class SubmitRayJob(BaseOperator):
             return
 
     def execute(self,context : Context):
+
+        print("::group::SubmitRayJobLogs")
 
         if not self.client:
             print(f"URL is: {self.url}")

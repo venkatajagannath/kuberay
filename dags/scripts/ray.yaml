@@ -18,6 +18,13 @@ spec:
         containers:
         - name: ray-head
           image: rayproject/ray-ml:latest
+          env:  # Environment variables section starts here
+          - name: RAY_GRAFANA_IFRAME_HOST
+            value: "http://127.0.0.1:3000"
+          - name: RAY_GRAFANA_HOST
+            value: "http://prometheus-grafana.prometheus-system.svc:80"
+          - name: RAY_PROMETHEUS_HOST
+            value: "http://prometheus-kube-prometheus-prometheus.prometheus-system.svc:9090"
           resources:
             limits:
               cpu: 4
@@ -38,6 +45,12 @@ spec:
             name: client
           - containerPort: 8000
             name: serve
+          - containerPort: 8080
+            name: metrics
+          - containerPort: 44217
+            name: as-metrics # autoscaler
+          - containerPort: 44227
+            name: dash-metrics # dashboard
   workerGroupSpecs:
   - groupName: small-group
     replicas: 2
