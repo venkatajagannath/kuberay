@@ -23,7 +23,7 @@ import time
 from datetime import timedelta
 
 import logging
-logger = logging.getLogger("kuberay.py")
+logging.basicConfig(level=logging.DEBUG)
 
 from kubernetes import client, config, watch
 import yaml
@@ -37,7 +37,7 @@ def create_service_and_get_url(namespace="default", yaml_file="ray-head-service.
 
     v1 = client.CoreV1Api()
     created_service = v1.create_namespaced_service(namespace=namespace, body=service_data)
-    logger.info(f"Service {created_service.metadata.name} created. Waiting for an external DNS name...")
+    self.log.info(f"Service {created_service.metadata.name} created. Waiting for an external DNS name...")
 
     max_retries = 30
     retry_interval = 40
@@ -45,38 +45,38 @@ def create_service_and_get_url(namespace="default", yaml_file="ray-head-service.
     external_dns = None
 
     for attempt in range(max_retries):
-        logger.info(f"Attempt {attempt + 1}: Checking for service's external DNS name...")
+        self.log.info(f"Attempt {attempt + 1}: Checking for service's external DNS name...")
         service = v1.read_namespaced_service(name=created_service.metadata.name, namespace=namespace)
         
         if service.status.load_balancer.ingress and service.status.load_balancer.ingress[0].hostname:
             external_dns = service.status.load_balancer.ingress[0].hostname
-            logger.info(f"External DNS name found: {external_dns}")
+            self.log.info(f"External DNS name found: {external_dns}")
             break
         else:
-            logger.info("External DNS name not yet available, waiting...")
+            self.log.info("External DNS name not yet available, waiting...")
             time.sleep(retry_interval)
 
     if not external_dns:
-        logger.error("Failed to find the external DNS name for the created service within the expected time.")
+        self.log.error("Failed to find the external DNS name for the created service within the expected time.")
         return None
     
     # Wait for the endpoints to be ready
     for attempt in range(max_retries):
         endpoints = v1.read_namespaced_endpoints(name=created_service.metadata.name, namespace=namespace)
         if endpoints.subsets and all([subset.addresses for subset in endpoints.subsets]):
-            logger.info("All associated pods are ready.")
+            self.log.info("All associated pods are ready.")
             break
         else:
-            logger.info(f"Pods not ready, waiting... (Attempt {attempt + 1})")
+            self.log.info(f"Pods not ready, waiting... (Attempt {attempt + 1})")
             time.sleep(retry_interval)
     else:
-        logger.error("Pods failed to become ready within the expected time.")
+        self.log.error("Pods failed to become ready within the expected time.")
         raise AirflowException("Pods failed to become ready within the expected time.")
 
     # Assuming all ports in the service need to be accessed
     urls = [f"http://{external_dns}:{port.port}" for port in service.spec.ports]
     for url in urls:
-        logger.info(f"Service URL: {url}")
+        self.log.info(f"Service URL: {url}")
 
     return urls
 
@@ -148,7 +148,7 @@ class RayClusterOperator(BaseOperator):
         
         bash_path = shutil.which("bash") or "bash"
 
-        logger.info("Running bash command: "+ bash_command)
+        self.log.info("Running bash command: "+ bash_command)
 
         result = self.subprocess_hook.run_command(
             command=[bash_path, "-c", bash_command],
@@ -169,7 +169,7 @@ class RayClusterOperator(BaseOperator):
         command = f"eksctl utils write-kubeconfig --cluster={self.cluster_name} --region={self.region}"
         
         result = self.execute_bash_command(command, env)
-        logger.info(result)
+        self.log.info(result)
         return result
 
     def add_kuberay_operator(self, env: dict):
@@ -181,7 +181,7 @@ class RayClusterOperator(BaseOperator):
                     --version 1.0.0 --create-namespace --namespace {self.ray_namespace}
                     """
         result = self.execute_bash_command(helm_commands, env)
-        logger.info(result)
+        self.log.info(result)
         return result
     
     def create_ray_cluster(self, env: dict):
@@ -189,7 +189,7 @@ class RayClusterOperator(BaseOperator):
         command = f"kubectl apply -f {self.ray_cluster_yaml} -n {self.ray_namespace}"
         
         result = self.execute_bash_command(command, env)
-        logger.info(result)
+        self.log.info(result)
         return result
     
     def add_nvidia_device(self,env: dict):
@@ -197,12 +197,12 @@ class RayClusterOperator(BaseOperator):
         command = "kubectl apply -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.9.0/nvidia-device-plugin.yml"
 
         result = self.execute_bash_command(command,env)
-        logger.info(result)
+        self.log.info(result)
         return result
     
     def create_k8_service(self, namespace: str, yaml : str):
 
-        logger.info("Creating service with yaml file: "+ yaml)
+        self.log.info("Creating service with yaml file: "+ yaml)
 
         return create_service_and_get_url(namespace, yaml)
     
@@ -219,7 +219,7 @@ class RayClusterOperator(BaseOperator):
         if self.use_gpu:
             self.add_nvidia_device(env)
 
-        logger.info("Creating services ...")
+        self.log.info("Creating services ...")
 
         # Creating K8 services
         urls = self.create_k8_service(self.ray_namespace, self.ray_svc_yaml)
@@ -230,7 +230,7 @@ class RayClusterOperator(BaseOperator):
                 context['task_instance'].xcom_push(key=key, value=url)
         else:
             # Handle the case when urls is None or empty
-            logger.info("No URLs to push to XCom.")
+            self.log.info("No URLs to push to XCom.")
 
         return urls
 
@@ -350,7 +350,7 @@ class DeployRayService(BaseOperator):
 
     def deploy_svc(self, namespace: str, svc_yaml: str):
 
-        logger.info("Creating service with yaml file: "+ yaml)
+        self.log.info("Creating service with yaml file: "+ yaml)
 
         return create_service_and_get_url(namespace, yaml)
 
