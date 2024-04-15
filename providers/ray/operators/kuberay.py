@@ -264,8 +264,6 @@ class SubmitRayJob(BaseOperator):
 
     def execute(self,context : Context):
 
-        self.log.info("::group::SubmitRayJobLogs")
-
         if not self.client:
             self.log.info(f"URL is: {self.url}")
             self.client = JobSubmissionClient(f"{self.url}")
@@ -297,8 +295,6 @@ class SubmitRayJob(BaseOperator):
             raise AirflowException(f"Job was cancelled:\n{self.job_id}")
         else:
             raise Exception(f"Encountered unexpected state `{current_status}` for job_id `{self.job_id}")
-        
-        self.log.info("::endgroup::")
         
         return self.job_id
     
