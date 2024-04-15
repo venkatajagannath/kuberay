@@ -264,21 +264,21 @@ class SubmitRayJob(BaseOperator):
 
     def execute(self,context : Context):
 
-        print("::group::SubmitRayJobLogs")
+        self.log.info("::group::SubmitRayJobLogs")
 
         if not self.client:
-            print(f"URL is: {self.url}")
+            self.log.info(f"URL is: {self.url}")
             self.client = JobSubmissionClient(f"{self.url}")
 
         self.job_id = self.client.submit_job(
             entrypoint= self.entrypoint,
             runtime_env={"working_dir": self.wd})  #https://docs.ray.io/en/latest/ray-core/handling-dependencies.html#runtime-environments
         
-        print(f"Ray job submitted with id:{self.job_id}")
+        self.log.info(f"Ray job submitted with id:{self.job_id}")
 
         current_status = self.get_current_status()
         if current_status in (JobStatus.RUNNING, JobStatus.PENDING):
-            print("Deferring the polling to RayJobTrigger...")
+            self.log.info("Deferring the polling to RayJobTrigger...")
             self.defer(
                 timeout= timedelta(hours=1),
                 trigger= RayJobTrigger(
@@ -289,7 +289,7 @@ class SubmitRayJob(BaseOperator):
                 ),
                 method_name="execute_complete",)
         elif current_status == JobStatus.SUCCEEDED:
-            print("Job %s completed successfully", self.job_id)
+            self.log.info("Job %s completed successfully", self.job_id)
             return
         elif current_status == JobStatus.FAILED:
             raise AirflowException(f"Job failed:\n{self.job_id}")
@@ -298,23 +298,23 @@ class SubmitRayJob(BaseOperator):
         else:
             raise Exception(f"Encountered unexpected state `{current_status}` for job_id `{self.job_id}")
         
-        print("::endgroup::")
+        self.log.info("::endgroup::")
         
         return self.job_id
     
     def get_current_status(self):
         
         job_status = self.client.get_job_status(self.job_id)
-        print(f"Current job status for {self.job_id} is: {job_status}")
+        self.log.info(f"Current job status for {self.job_id} is: {job_status}")
         return job_status
     
     def execute_complete(self, context: Context, event: Any = None) -> None:
 
         if event["status"] == "error" or event["status"] == "cancelled":
-            print(f"Ray job {self.job_id} execution not completed...")
+            self.log.info(f"Ray job {self.job_id} execution not completed...")
             raise AirflowException(event["message"])
         elif event["status"] == "success":
-            print(f"Ray job {self.job_id} execution succeeded ...")
+            self.log.info(f"Ray job {self.job_id} execution succeeded ...")
             return None
         
 
@@ -346,8 +346,8 @@ class DeployRayService(BaseOperator):
         while time.time() - start <= timeout_seconds:
             status = self.client.get_job_status(self.job_id)
             logs = self.client.get_job_logs(self.job_id)
-            print(logs)
-            print(f"status: {status}")
+            self.log.info(logs)
+            self.log.info(f"status: {status}")
             if status in self.status_to_wait_for:
                 break
             time.sleep(1)
