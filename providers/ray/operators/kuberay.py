@@ -24,7 +24,7 @@ from ray.job_submission import JobSubmissionClient, JobStatus
 from typing import TYPE_CHECKING, Container, Sequence, cast
 
 # Set up logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 
 def create_service_and_get_url(log: Logger, namespace="default", yaml_file="ray-head-service.yaml"):
