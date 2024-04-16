@@ -203,7 +203,7 @@ class RayClusterOperator(BaseOperator):
 
         self.log.info("Creating service with yaml file: "+ yaml)
 
-        return create_service_and_get_url(self.log, namespace, yaml)
+        return create_service_and_get_url(namespace, yaml)
     
     def execute(self, context: Context):
 
