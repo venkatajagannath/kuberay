@@ -4,8 +4,12 @@ from typing import Any, AsyncIterator
 from airflow.triggers.base import BaseTrigger, TriggerEvent
 from airflow.exceptions import AirflowException
 from ray.dashboard.modules.job.sdk import JobSubmissionClient, JobStatus
+from providers.ray.utils.kuberay import setup_logging
 import logging
 import time
+
+# Set up logging
+logger = setup_logging('kuberay')
 
 class RayJobTrigger(BaseTrigger):
     def __init__(self,
@@ -19,8 +23,8 @@ class RayJobTrigger(BaseTrigger):
         self.end_time = end_time
         self.poll_interval = poll_interval
 
-        self.logger = logging.getLogger(self.__class__.__name__)
-        self.logger.setLevel(logging.INFO)
+        #self.logger = logging.getLogger(self.__class__.__name__)
+        #self.logger.setLevel(logging.INFO)
 
         #print("::group::RayJobTriggerLogs")
 
@@ -38,7 +42,7 @@ class RayJobTrigger(BaseTrigger):
 
         try:
             print(f"Polling for job {self.job_id} every {self.poll_interval} seconds...")
-            self.logger.info(f"Polling for job {self.job_id} every {self.poll_interval} seconds...")
+            logger.info(f"Polling for job {self.job_id} every {self.poll_interval} seconds...")
             client = JobSubmissionClient(f"{self.url}")
 
             while self.get_current_status(client=client):
@@ -55,16 +59,13 @@ class RayJobTrigger(BaseTrigger):
                 
                 # Stream logs if available
                 async for line in client.tail_job_logs(self.job_id):
-                    print(line)
-                    self.logger.info(line)
+                    logger.info(line)
 
                 await asyncio.sleep(self.poll_interval)
-            print(f"Job {self.job_id} completed execution before the timeout period...")
-            self.logger.info(f"Job {self.job_id} completed execution before the timeout period...")
+            logger.info(f"Job {self.job_id} completed execution before the timeout period...")
             
             completed_status = client.get_job_status(self.job_id)
-            print(f"Status of completed job {self.job_id} is: {completed_status}")
-            self.logger.info(f"Status of completed job {self.job_id} is: {completed_status}")
+            logger.info(f"Status of completed job {self.job_id} is: {completed_status}")
             if completed_status == JobStatus.SUCCEEDED:
                 yield TriggerEvent(
                     {
@@ -95,8 +96,7 @@ class RayJobTrigger(BaseTrigger):
     def get_current_status(self, client: JobSubmissionClient) -> bool:
 
         job_status = client.get_job_status(self.job_id)
-        print(f"Current job status for {self.job_id} is: {job_status}")
-        self.logger.info(f"Current job status for {self.job_id} is: {job_status}")
+        logger.info(f"Current job status for {self.job_id} is: {job_status}")
         if job_status in (JobStatus.RUNNING,JobStatus.PENDING):
             return True
         else:
