@@ -271,10 +271,12 @@ class SubmitRayJob(BaseOperator):
             runtime_env={"working_dir": self.wd})  #https://docs.ray.io/en/latest/ray-core/handling-dependencies.html#runtime-environments
         
         self.log.info(f"Ray job submitted with id:{self.job_id}")
+        print(f"Ray job submitted with id:{self.job_id}")
 
         current_status = self.get_current_status()
         if current_status in (JobStatus.RUNNING, JobStatus.PENDING):
             self.log.info("Deferring the polling to RayJobTrigger...")
+            print("Deferring the polling to RayJobTrigger...")
             self.defer(
                 timeout= timedelta(hours=1),
                 trigger= RayJobTrigger(
@@ -300,6 +302,7 @@ class SubmitRayJob(BaseOperator):
         
         job_status = self.client.get_job_status(self.job_id)
         self.log.info(f"Current job status for {self.job_id} is: {job_status}")
+        print(f"Current job status for {self.job_id} is: {job_status}")
         return job_status
     
     def execute_complete(self, context: Context, event: Any = None) -> None:
@@ -309,4 +312,5 @@ class SubmitRayJob(BaseOperator):
             raise AirflowException(event["message"])
         elif event["status"] == "success":
             self.log.info(f"Ray job {self.job_id} execution succeeded ...")
+            print(f"Ray job {self.job_id} execution succeeded ...")
             return None

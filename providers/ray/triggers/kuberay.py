@@ -55,6 +55,7 @@ class RayJobTrigger(BaseTrigger):
                 
                 # Stream logs if available
                 async for line in client.tail_job_logs(self.job_id):
+                    print(line)
                     self.logger.info(line)
 
                 await asyncio.sleep(self.poll_interval)
