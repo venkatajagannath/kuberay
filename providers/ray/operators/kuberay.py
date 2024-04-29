@@ -124,7 +124,6 @@ class RayClusterOperator(BaseOperator):
             self.ray_cluster_yaml = ray_cluster_yaml
 
         if self.kubeconfig:
-            config.load_kube_config(self.kubeconfig)
             os.environ['KUBECONFIG'] = self.kubeconfig
         
         self.k8Client = client.ApiClient()
@@ -202,6 +201,9 @@ class RayClusterOperator(BaseOperator):
         return result"""
     
     def create_ray_cluster(self):
+
+        config.load_kube_config(self.kubeconfig)
+
         with open(self.ray_cluster_yaml, 'r') as f:
             yml_document_all = client.utils.yaml.safe_load_all(f)
 
@@ -219,6 +221,8 @@ class RayClusterOperator(BaseOperator):
         return results
 
     def add_nvidia_device(self):
+
+        config.load_kube_config(self.kubeconfig)
         
         nvidia_device_url = "https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.9.0/nvidia-device-plugin.yml"
 
