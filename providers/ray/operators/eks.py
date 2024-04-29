@@ -24,9 +24,10 @@ class CreateEKSCluster(BaseOperator):
 
 
     def __init__(self,*,
-                 cluster_name: str = None,
-                 region: str = None,
-                 eks_k8_spec: str = None,
+                 cluster_name: str,
+                 region: str,
+                 eks_k8_spec: str,
+                 kubeconfig_path: str,
                  env: dict = None,
                  **kwargs,):
         
@@ -34,6 +35,7 @@ class CreateEKSCluster(BaseOperator):
         self.cluster_name = cluster_name
         self.region = region
         self.eks_k8_spec = eks_k8_spec
+        self.kubeconfig_path = kubeconfig_path
         self.env = env
         self.output_encoding: str = "utf-8"
         self.cwd = tempfile.mkdtemp(prefix="tmp")
@@ -96,14 +98,6 @@ class CreateEKSCluster(BaseOperator):
 
         return result.output
     
-    def update_kubeconfig(self, env: dict):
-
-        command = f"eksctl utils write-kubeconfig --cluster={self.cluster_name} --region={self.region}"
-        
-        result = self.execute_bash_command(command, env)
-        logging.info(result)
-        return result
-
     def create_eks_cluster(self,env : dict):
 
         command = f"""
@@ -112,6 +106,14 @@ class CreateEKSCluster(BaseOperator):
         result = self.execute_bash_command(command,env)
         logging.info(result)
 
+        return result
+
+    def update_kubeconfig(self, env: dict):
+
+        command = f"eksctl utils write-kubeconfig --cluster={self.cluster_name} --region={self.region} --kubeconfig {self.kubeconfig_path}"
+        
+        result = self.execute_bash_command(command, env)
+        logging.info(result)
         return result
 
     def execute(self, context: Context):

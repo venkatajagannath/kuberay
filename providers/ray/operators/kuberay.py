@@ -86,9 +86,11 @@ class RayClusterOperator(BaseOperator):
     def __init__(self,*,
                  cluster_name: str,
                  region: str,
+                 kubeconfig: str,
                  ray_namespace: str,
                  ray_cluster_yaml : str,
                  ray_svc_yaml : str,
+                 kubeconfig_path: str,
                  ray_gpu: bool = False,
                  env: dict = None,
                  **kwargs):
@@ -96,8 +98,10 @@ class RayClusterOperator(BaseOperator):
         super().__init__(**kwargs)
         self.cluster_name = cluster_name
         self.region = region
+        self.kubeconfig = kubeconfig
         self.ray_namespace = ray_namespace
         self.ray_svc_yaml = ray_svc_yaml
+        self.kubeconfig_path = kubeconfig_path
         self.use_gpu = ray_gpu
         self.env = env
         self.output_encoding: str = "utf-8"
@@ -165,11 +169,8 @@ class RayClusterOperator(BaseOperator):
     
     def update_kubeconfig(self, env: dict):
 
-        command = f"eksctl utils write-kubeconfig --cluster={self.cluster_name} --region={self.region}"
-        
-        result = self.execute_bash_command(command, env)
-        self.log.info(result)
-        return result
+        os.environ['KUBECONFIG'] = self.kubeconfig_path
+        return
 
     def add_kuberay_operator(self, env: dict):
         # Helm commands to add repo, update, and install KubeRay operator
