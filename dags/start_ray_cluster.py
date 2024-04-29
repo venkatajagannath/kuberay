@@ -31,7 +31,7 @@ K8SPEC = '/usr/local/airflow/dags/scripts/k8.yaml'
 RAY_SPEC = '/usr/local/airflow/dags/scripts/ray.yaml'
 RAY_SVC = '/usr/local/airflow/dags/scripts/ray-service.yaml'
 RAY_SCRIPTS = '/usr/local/airflow/dags/ray_scripts'
-kubeconfig_directory = f"/opt/airflow/kubeconfigs/{REGION}/{CLUSTERNAME}/"
+kubeconfig_directory = f"/tmp/airflow_kubeconfigs/{REGION}/{CLUSTERNAME}/"
 os.makedirs(kubeconfig_directory, exist_ok=True)  # Ensure the directory exists
 KUBECONFIG_PATH = os.path.join(kubeconfig_directory, "kubeconfig.yaml")
 
