@@ -8,6 +8,7 @@ import tempfile
 import time
 import warnings
 import yaml
+import requests
 
 from airflow.exceptions import AirflowException
 from airflow.hooks.subprocess import SubprocessHook
@@ -19,6 +20,7 @@ from datetime import timedelta
 from functools import cached_property
 from kubernetes import client, config, watch
 from kubernetes.client.rest import ApiException
+from kubernetes.utils import create_from_yaml
 from logging import Logger
 from providers.ray.triggers.kuberay import RayJobTrigger
 from providers.ray.utils.kuberay import setup_logging
@@ -29,7 +31,7 @@ from typing import TYPE_CHECKING, Container, Sequence, cast
 logger = setup_logging('kuberay')
 
 
-def create_service_and_get_url(namespace="default", yaml_file="ray-head-service.yaml"):
+"""def create_service_and_get_url(namespace="default", yaml_file="ray-head-service.yaml"):
     config.load_kube_config()
 
     with open(yaml_file) as f:
@@ -78,7 +80,7 @@ def create_service_and_get_url(namespace="default", yaml_file="ray-head-service.
     for url in urls:
         logger.info(f"Service URL: {url}")
 
-    return urls
+    return urls"""
 
 
 class RayClusterOperator(BaseOperator):
@@ -201,44 +203,105 @@ class RayClusterOperator(BaseOperator):
         return result"""
     
     def create_ray_cluster(self):
-
+        # Load the Kubernetes configuration file
         config.load_kube_config(self.kubeconfig)
 
+        # Open the Ray cluster YAML file and load all documents
         with open(self.ray_cluster_yaml, 'r') as f:
-            yml_document_all = client.utils.yaml.safe_load_all(f)
+            yml_document_all = yaml.safe_load_all(f)
 
         results = []
         try:
+            # Process each document in the YAML file
             for yml_document in yml_document_all:
-                api_instance = client.utils.create_from_yaml.get_api_instance(self.k8Client, yml_document, verbose=True)
-                result = client.utils.create_from_yaml.create_from_yaml_single_item(api_instance, yml_document, namespace=self.ray_namespace)
+                # Create Kubernetes resources based on the YAML content
+                result = create_from_yaml.create_from_yaml(self.k8Client, yml_document, namespace=self.ray_namespace)
                 results.append(result)
             self.log.info("Ray cluster created successfully.")
-        except ApiException as e:
-            self.log.error("Failed to create Ray cluster: %s" % e)
+        except client.ApiException as e:
+            self.log.error(f"Failed to create Ray cluster: {e}")
             return str(e)
 
         return results
 
     def add_nvidia_device(self):
 
+        # Load the Kubernetes configuration file
         config.load_kube_config(self.kubeconfig)
         
         nvidia_device_url = "https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.9.0/nvidia-device-plugin.yml"
 
+        # Download the YAML file from the URL
+        response = requests.get(nvidia_device_url)
+        if response.status_code == 200:
+            yaml_content = response.text
+        else:
+            self.log.error(f"Failed to download NVIDIA device plugin YAML: HTTP {response.status_code}")
+            return None
+
         try:
-            response = client.utils.create_from_yaml.url_load(self.k8Client, nvidia_device_url)
+            # Load and create resources from the YAML content
+            results = create_from_yaml.load_from_yaml(self.k8Client, yaml_content, verbose=True)
             self.log.info("NVIDIA device plugin added successfully.")
-            return response
-        except ApiException as e:
-            self.log.error("Failed to add NVIDIA device plugin: %s" % e)
+            return results
+        except client.ApiException as e:
+            self.log.error(f"Failed to add NVIDIA device plugin: {e}")
+            return None
             return str(e)
     
-    def create_k8_service(self, namespace: str, yaml : str):
+    def create_k8_service(self, namespace: str ="default", yaml_file: str ="ray-head-service.yaml"):
 
         self.log.info("Creating service with yaml file: "+ yaml)
 
-        return create_service_and_get_url(namespace, yaml)
+        config.load_kube_config(self.kubeconfig)
+
+        with open(yaml_file) as f:
+            service_data = yaml.safe_load(f)
+
+        v1 = client.CoreV1Api()
+        created_service = v1.create_namespaced_service(namespace=namespace, body=service_data)
+        logger.info(f"Service {created_service.metadata.name} created. Waiting for an external DNS name...")
+
+        max_retries = 30
+        retry_interval = 40
+
+        external_dns = None
+
+        for attempt in range(max_retries):
+            logger.info(f"Attempt {attempt + 1}: Checking for service's external DNS name...")
+            service = v1.read_namespaced_service(name=created_service.metadata.name, namespace=namespace)
+            
+            if service.status.load_balancer.ingress and service.status.load_balancer.ingress[0].hostname:
+                external_dns = service.status.load_balancer.ingress[0].hostname
+                logger.info(f"External DNS name found: {external_dns}")
+                break
+            else:
+                logger.info("External DNS name not yet available, waiting...")
+                time.sleep(retry_interval)
+
+        if not external_dns:
+            logger.error("Failed to find the external DNS name for the created service within the expected time.")
+            return None
+        
+        # Wait for the endpoints to be ready
+        for attempt in range(max_retries):
+            endpoints = v1.read_namespaced_endpoints(name=created_service.metadata.name, namespace=namespace)
+            if endpoints.subsets and all([subset.addresses for subset in endpoints.subsets]):
+                logger.info("All associated pods are ready.")
+                break
+            else:
+                logger.info(f"Pods not ready, waiting... (Attempt {attempt + 1})")
+                time.sleep(retry_interval)
+        else:
+            logger.error("Pods failed to become ready within the expected time.")
+            raise AirflowException("Pods failed to become ready within the expected time.")
+
+        # Assuming all ports in the service need to be accessed
+        urls = [f"http://{external_dns}:{port.port}" for port in service.spec.ports]
+        for url in urls:
+            logger.info(f"Service URL: {url}")
+
+        return urls
     
     def execute(self, context: Context):
 
@@ -251,18 +314,17 @@ class RayClusterOperator(BaseOperator):
         if self.use_gpu:
             self.add_nvidia_device()
 
-        self.log.info("Creating services ...")
+        if self.ray_svc_yaml:
+            # Creating K8 services
+            urls = self.create_k8_service(self.ray_namespace, self.ray_svc_yaml)
 
-        # Creating K8 services
-        urls = self.create_k8_service(self.ray_namespace, self.ray_svc_yaml)
-
-        if urls:
-            for index, url in enumerate(urls, start=1):
-                key = f'url{index}'
-                context['task_instance'].xcom_push(key=key, value=url)
-        else:
-            # Handle the case when urls is None or empty
-            self.log.info("No URLs to push to XCom.")
+            if urls:
+                for index, url in enumerate(urls, start=1):
+                    key = f'url{index}'
+                    context['task_instance'].xcom_push(key=key, value=url)
+            else:
+                # Handle the case when urls is None or empty
+                self.log.info("No URLs to push to XCom.")
 
         return urls
 
