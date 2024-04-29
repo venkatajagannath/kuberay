@@ -57,7 +57,7 @@ ray_cluster = RayClusterOperator(task_id="RayClusterOperator",
                                  ray_namespace="ray",
                                  ray_cluster_yaml=RAY_SPEC,
                                  ray_svc_yaml= RAY_SVC,
-                                 kubeconfig_path= KUBECONFIG_PATH,
+                                 kubeconfig= KUBECONFIG_PATH,
                                  ray_gpu=True,
                                  env = {},
                                  dag = dag,)

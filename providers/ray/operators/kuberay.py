@@ -90,7 +90,6 @@ class RayClusterOperator(BaseOperator):
                  ray_namespace: str,
                  ray_cluster_yaml : str,
                  ray_svc_yaml : str,
-                 kubeconfig_path: str,
                  ray_gpu: bool = False,
                  env: dict = None,
                  **kwargs):
@@ -101,7 +100,6 @@ class RayClusterOperator(BaseOperator):
         self.kubeconfig = kubeconfig
         self.ray_namespace = ray_namespace
         self.ray_svc_yaml = ray_svc_yaml
-        self.kubeconfig_path = kubeconfig_path
         self.use_gpu = ray_gpu
         self.env = env
         self.output_encoding: str = "utf-8"
@@ -169,7 +167,7 @@ class RayClusterOperator(BaseOperator):
     
     def update_kubeconfig(self, env: dict):
 
-        os.environ['KUBECONFIG'] = self.kubeconfig_path
+        os.environ['KUBECONFIG'] = self.kubeconfig
         return
 
     def add_kuberay_operator(self, env: dict):

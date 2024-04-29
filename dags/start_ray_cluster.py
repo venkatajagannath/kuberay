@@ -3,6 +3,7 @@ from airflow import DAG
 from providers.ray.operators.kuberay import RayClusterOperator,SubmitRayJob
 from providers.ray.operators.eks import CreateEKSCluster,DeleteEKSCluster
 from datetime import datetime, timedelta
+import os
 
 from airflow.models.connection import Connection
 
@@ -30,6 +31,9 @@ K8SPEC = '/usr/local/airflow/dags/scripts/k8.yaml'
 RAY_SPEC = '/usr/local/airflow/dags/scripts/ray.yaml'
 RAY_SVC = '/usr/local/airflow/dags/scripts/ray-service.yaml'
 RAY_SCRIPTS = '/usr/local/airflow/dags/ray_scripts'
+kubeconfig_directory = f"/opt/airflow/kubeconfigs/{REGION}/{CLUSTERNAME}/"
+os.makedirs(kubeconfig_directory, exist_ok=True)  # Ensure the directory exists
+KUBECONFIG_PATH = os.path.join(kubeconfig_directory, "kubeconfig.yaml")
 
 dag = DAG(
     'start_ray_cluster',
@@ -42,6 +46,7 @@ create_eks_cluster = CreateEKSCluster(task_id="CreateEKSCluster",
                                       cluster_name=CLUSTERNAME,
                                       region=REGION,
                                       eks_k8_spec=K8SPEC,
+                                      kubeconfig_path=KUBECONFIG_PATH,
                                       env= {},
                                       dag = dag,)
 
@@ -51,6 +56,7 @@ ray_cluster = RayClusterOperator(task_id="RayClusterOperator",
                                  ray_namespace="ray",
                                  ray_cluster_yaml=RAY_SPEC,
                                  ray_svc_yaml= RAY_SVC,
+                                 kubeconfig=KUBECONFIG_PATH,
                                  ray_gpu=False,
                                  env = {},
                                  dag = dag,)
