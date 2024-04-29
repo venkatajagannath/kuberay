@@ -18,6 +18,7 @@ from airflow.utils.operator_helpers import context_to_airflow_vars
 from datetime import timedelta
 from functools import cached_property
 from kubernetes import client, config, watch
+from kubernetes.client.rest import ApiException
 from logging import Logger
 from providers.ray.triggers.kuberay import RayJobTrigger
 from providers.ray.utils.kuberay import setup_logging
@@ -111,7 +112,7 @@ class RayClusterOperator(BaseOperator):
             raise AirflowException("EKS region is required.")
         if not self.ray_namespace:
             raise AirflowException("EKS namespace is required.")
-
+        
         # Check if ray cluster spec is provided
         if not ray_cluster_yaml:
             raise AirflowException("Ray Cluster spec is required")
@@ -121,6 +122,12 @@ class RayClusterOperator(BaseOperator):
             raise AirflowException("The specified Ray cluster YAML file must have a .yaml or .yml extension.")
         else:
             self.ray_cluster_yaml = ray_cluster_yaml
+
+        if self.kubeconfig:
+            config.load_kube_config(self.kubeconfig)
+            os.environ['KUBECONFIG'] = self.kubeconfig
+        
+        self.k8Client = client.ApiClient()
 
     @cached_property
     def subprocess_hook(self):
@@ -164,11 +171,7 @@ class RayClusterOperator(BaseOperator):
             )
 
         return result.output
-    
-    def update_kubeconfig(self, env: dict):
 
-        os.environ['KUBECONFIG'] = self.kubeconfig
-        return
 
     def add_kuberay_operator(self, env: dict):
         # Helm commands to add repo, update, and install KubeRay operator
@@ -182,21 +185,50 @@ class RayClusterOperator(BaseOperator):
         self.log.info(result)
         return result
     
-    def create_ray_cluster(self, env: dict):
+    """def create_ray_cluster(self, env: dict):
 
         command = f"kubectl apply -f {self.ray_cluster_yaml} -n {self.ray_namespace}"
         
         result = self.execute_bash_command(command, env)
         self.log.info(result)
-        return result
+        return result"""
     
-    def add_nvidia_device(self,env: dict):
+    """def add_nvidia_device(self,env: dict):
 
         command = "kubectl apply -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.9.0/nvidia-device-plugin.yml"
 
         result = self.execute_bash_command(command,env)
         self.log.info(result)
-        return result
+        return result"""
+    
+    def create_ray_cluster(self):
+        with open(self.ray_cluster_yaml, 'r') as f:
+            yml_document_all = client.utils.yaml.safe_load_all(f)
+
+        results = []
+        try:
+            for yml_document in yml_document_all:
+                api_instance = client.utils.create_from_yaml.get_api_instance(self.k8Client, yml_document, verbose=True)
+                result = client.utils.create_from_yaml.create_from_yaml_single_item(api_instance, yml_document, namespace=self.ray_namespace)
+                results.append(result)
+            self.log.info("Ray cluster created successfully.")
+        except ApiException as e:
+            self.log.error("Failed to create Ray cluster: %s" % e)
+            return str(e)
+
+        return results
+
+    def add_nvidia_device(self):
+        
+        nvidia_device_url = "https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.9.0/nvidia-device-plugin.yml"
+
+        try:
+            response = client.utils.create_from_yaml.url_load(self.k8Client, nvidia_device_url)
+            self.log.info("NVIDIA device plugin added successfully.")
+            return response
+        except ApiException as e:
+            self.log.error("Failed to add NVIDIA device plugin: %s" % e)
+            return str(e)
     
     def create_k8_service(self, namespace: str, yaml : str):
 
@@ -208,14 +240,12 @@ class RayClusterOperator(BaseOperator):
 
         env = self.get_env(context)
 
-        self.update_kubeconfig(env)
-
         self.add_kuberay_operator(env)
 
-        self.create_ray_cluster(env)
+        self.create_ray_cluster()
 
         if self.use_gpu:
-            self.add_nvidia_device(env)
+            self.add_nvidia_device()
 
         self.log.info("Creating services ...")
 
