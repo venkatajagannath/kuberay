@@ -20,6 +20,8 @@ from datetime import timedelta
 from functools import cached_property
 from kubernetes import client, config, utils
 from kubernetes.client.rest import ApiException
+from kubernetes.client.api_client import ApiClient
+from kubernetes.dynamic import DynamicClient
 from logging import Logger
 from providers.ray.triggers.kuberay import RayJobTrigger
 from providers.ray.utils.kuberay import setup_logging
@@ -140,14 +142,32 @@ class RayClusterOperator(BaseOperator):
         self.log.info(result)
         return result
     
-    def create_ray_cluster_(self, yaml_file: str, namespace: str):
+    def create_ray_cluster_(self):
+        # Set up the dynamic client
+        dyn_client = DynamicClient(self.k8Client)
 
-        result = utils.create_from_yaml(k8s_client = self.k8Client,
-                                        yaml_file = yaml_file,
-                                        namespace = namespace,
-                                        verbose=True)
-        
-        return result
+        # Read the YAML file
+        with open(self.ray_cluster_yaml, 'r') as f:
+            resources = yaml.safe_load_all(f)
+            results = []
+            for resource in resources:
+                group, _, version = resource["apiVersion"].partition('/')
+                if '/' not in resource["apiVersion"]:
+                    group = 'core'  # Assume 'core' if no group specified
+                kind = resource["kind"]
+                # Find the correct API resource for this kind and group
+                api_resource = dyn_client.resources.get(api_group=group,
+                                                        api_version=version,
+                                                        kind=kind)
+                # Create the resource in the specified namespace
+                try:
+                    created_resource = api_resource.create(body=resource, namespace=self.ray_namespace)
+                    results.append(created_resource)
+                    print(f"Successfully created {kind} named {resource['metadata']['name']}")
+                except Exception as e:
+                    print(f"Failed to create {kind}: {str(e)}")
+                    results.append(str(e))
+            return results
     
     def add_nvidia_device(self,env: dict):
 
