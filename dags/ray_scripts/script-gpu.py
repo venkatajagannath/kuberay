@@ -22,8 +22,9 @@ def gpu_task():
     else:
         print("CUDA is not available. This task did not run on a GPU.")
 
-# Running the GPU task
 gpu_future = gpu_task.remote()
 
-# Waiting for the task to complete and fetch logs
-ray.get(gpu_future)
+for _ in range(5):
+    ray.get(gpu_future)
+    time.sleep(3)
+
