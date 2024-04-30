@@ -244,12 +244,11 @@ class RayClusterOperator(BaseOperator):
 
         try:
             # Load and create resources from the YAML content
-            results = create_from_yaml.load_from_yaml(self.k8Client, yaml_content, verbose=True)
+            results = create_from_yaml.create_from_yaml(self.k8Client, yaml_content, verbose=True)
             self.log.info("NVIDIA device plugin added successfully.")
             return results
         except client.ApiException as e:
             self.log.error(f"Failed to add NVIDIA device plugin: {e}")
-            return None
             return str(e)
     
     def create_k8_service(self, namespace: str ="default", yaml_file: str ="ray-head-service.yaml"):
