@@ -239,7 +239,7 @@ class RayClusterOperator(BaseOperator):
 
         #self.create_ray_cluster(env)
 
-        self.create_ray_cluster_(self.ray_cluster_yaml,self.ray_namespace)
+        self.create_ray_cluster_()
 
         if self.use_gpu:
             self.add_nvidia_device(env)
