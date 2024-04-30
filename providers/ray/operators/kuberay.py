@@ -213,7 +213,7 @@ class RayClusterOperator(BaseOperator):
                 # Process each document in the YAML file within the with block
                 for yml_document in yml_document_all:
                     # Create Kubernetes resources based on the YAML content
-                    result = create_from_yaml.create_from_yaml(self.k8Client, yml_document, namespace=self.ray_namespace)
+                    result = create_from_yaml(self.k8Client, yml_document, namespace=self.ray_namespace)
             self.log.info("Ray cluster created successfully.")
         except client.ApiException as e:
             self.log.error(f"Failed to create Ray cluster: {e}")
@@ -242,7 +242,7 @@ class RayClusterOperator(BaseOperator):
 
         try:
             # Load and create resources from the YAML content
-            results = create_from_yaml.create_from_yaml(self.k8Client, yaml_content, verbose=True)
+            results = create_from_yaml(self.k8Client, yaml_content, verbose=True)
             self.log.info("NVIDIA device plugin added successfully.")
             return results
         except client.ApiException as e:
