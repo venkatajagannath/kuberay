@@ -206,7 +206,6 @@ class RayClusterOperator(BaseOperator):
         # Load the Kubernetes configuration file
         config.load_kube_config(self.kubeconfig)
 
-        results = []
         # Open the Ray cluster YAML file and keep it open while processing
         try:
             with open(self.ray_cluster_yaml, 'r') as f:
@@ -215,7 +214,6 @@ class RayClusterOperator(BaseOperator):
                 for yml_document in yml_document_all:
                     # Create Kubernetes resources based on the YAML content
                     result = create_from_yaml.create_from_yaml(self.k8Client, yml_document, namespace=self.ray_namespace)
-                    results.append(result)
             self.log.info("Ray cluster created successfully.")
         except client.ApiException as e:
             self.log.error(f"Failed to create Ray cluster: {e}")
@@ -224,7 +222,7 @@ class RayClusterOperator(BaseOperator):
             self.log.error(f"An error occurred: {e}")
             return str(e)
 
-        return results
+        return result
 
 
     def add_nvidia_device(self):
