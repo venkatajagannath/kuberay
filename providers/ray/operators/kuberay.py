@@ -202,18 +202,14 @@ class RayClusterOperator(BaseOperator):
         self.log.info(result)
         return result"""
     
-    def create_ray_cluster(self):
+    def create_ray_cluster(self, ray_cluster_yaml: str):
         # Load the Kubernetes configuration file
         config.load_kube_config(self.kubeconfig)
 
         # Open the Ray cluster YAML file and keep it open while processing
         try:
-            with open(self.ray_cluster_yaml, 'r') as f:
-                yml_document_all = yaml.safe_load_all(f)
-                # Process each document in the YAML file within the with block
-                for yml_document in yml_document_all:
-                    # Create Kubernetes resources based on the YAML content
-                    result = create_from_yaml(self.k8Client, yml_document, namespace=self.ray_namespace)
+            # Create Kubernetes resources based on the YAML content
+            result = create_from_yaml(self.k8Client, ray_cluster_yaml, namespace=self.ray_namespace)
             self.log.info("Ray cluster created successfully.")
         except client.ApiException as e:
             self.log.error(f"Failed to create Ray cluster: {e}")
@@ -231,18 +227,9 @@ class RayClusterOperator(BaseOperator):
         config.load_kube_config(self.kubeconfig)
         
         nvidia_device_url = "https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.9.0/nvidia-device-plugin.yml"
-
-        # Download the YAML file from the URL
-        response = requests.get(nvidia_device_url)
-        if response.status_code == 200:
-            yaml_content = response.text
-        else:
-            self.log.error(f"Failed to download NVIDIA device plugin YAML: HTTP {response.status_code}")
-            return None
-
         try:
             # Load and create resources from the YAML content
-            results = create_from_yaml(self.k8Client, yaml_content, verbose=True)
+            results = create_from_yaml(self.k8Client, nvidia_device_url, verbose=True)
             self.log.info("NVIDIA device plugin added successfully.")
             return results
         except client.ApiException as e:
@@ -309,7 +296,7 @@ class RayClusterOperator(BaseOperator):
 
         self.add_kuberay_operator(env)
 
-        self.create_ray_cluster()
+        self.create_ray_cluster(self.ray_cluster_yaml)
 
         if self.use_gpu:
             self.add_nvidia_device()
