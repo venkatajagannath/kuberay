@@ -61,7 +61,7 @@ ray_cluster = RayClusterOperator(task_id="RayClusterOperator",
                                  env = {},
                                  dag = dag,)
 submit_ray_job = SubmitRayJob(task_id="SubmitRayJob",
-                              url = "{{ task_instance.xcom_pull(task_ids='RayClusterOperator', key='url1') }}",
+                              url = "{{ task_instance.xcom_pull(task_ids='RayClusterOperator', key='dashboard') }}",
                               entrypoint='python script.py',
                               wd=RAY_SCRIPTS,
                               env = {},

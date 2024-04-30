@@ -220,9 +220,8 @@ class RayClusterOperator(BaseOperator):
             urls = self.create_k8_service(self.ray_namespace, self.ray_svc_yaml)
 
             if urls:
-                for index, url in enumerate(urls, start=1):
-                    key = f'url{index}'
-                    context['task_instance'].xcom_push(key=key, value=url)
+                for key,value in urls.items():
+                    context['task_instance'].xcom_push(key=key, value=value)
             else:
                 # Handle the case when urls is None or empty
                 self.log.info("No URLs to push to XCom.")
