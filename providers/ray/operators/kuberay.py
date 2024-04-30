@@ -186,55 +186,21 @@ class RayClusterOperator(BaseOperator):
         self.log.info(result)
         return result
     
-    """def create_ray_cluster(self, env: dict):
+    def create_ray_cluster(self, env: dict):
 
         command = f"kubectl apply -f {self.ray_cluster_yaml} -n {self.ray_namespace}"
         
         result = self.execute_bash_command(command, env)
         self.log.info(result)
-        return result"""
+        return result
     
-    """def add_nvidia_device(self,env: dict):
+    def add_nvidia_device(self,env: dict):
 
         command = "kubectl apply -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.9.0/nvidia-device-plugin.yml"
 
         result = self.execute_bash_command(command,env)
         self.log.info(result)
-        return result"""
-    
-    def create_ray_cluster(self, ray_cluster_yaml: str):
-        # Load the Kubernetes configuration file
-        config.load_kube_config(self.kubeconfig)
-
-        # Open the Ray cluster YAML file and keep it open while processing
-        try:
-            # Create Kubernetes resources based on the YAML content
-            result = create_from_yaml(self.k8Client, ray_cluster_yaml, namespace=self.ray_namespace)
-            self.log.info("Ray cluster created successfully.")
-        except client.ApiException as e:
-            self.log.error(f"Failed to create Ray cluster: {e}")
-            return str(e)
-        except Exception as e:
-            self.log.error(f"An error occurred: {e}")
-            return str(e)
-
         return result
-
-
-    def add_nvidia_device(self):
-
-        # Load the Kubernetes configuration file
-        config.load_kube_config(self.kubeconfig)
-        
-        nvidia_device_url = "https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.9.0/nvidia-device-plugin.yml"
-        try:
-            # Load and create resources from the YAML content
-            results = create_from_yaml(self.k8Client, nvidia_device_url, verbose=True)
-            self.log.info("NVIDIA device plugin added successfully.")
-            return results
-        except client.ApiException as e:
-            self.log.error(f"Failed to add NVIDIA device plugin: {e}")
-            return str(e)
     
     def create_k8_service(self, namespace: str ="default", yaml_file: str ="ray-head-service.yaml"):
 
@@ -296,10 +262,10 @@ class RayClusterOperator(BaseOperator):
 
         self.add_kuberay_operator(env)
 
-        self.create_ray_cluster(self.ray_cluster_yaml)
+        self.create_ray_cluster(env)
 
         if self.use_gpu:
-            self.add_nvidia_device()
+            self.add_nvidia_device(env)
 
         if self.ray_svc_yaml:
             # Creating K8 services
