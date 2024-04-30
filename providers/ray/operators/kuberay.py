@@ -142,33 +142,6 @@ class RayClusterOperator(BaseOperator):
         self.log.info(result)
         return result
     
-    def create_ray_cluster_(self):
-        # Set up the dynamic client
-        dyn_client = DynamicClient(self.k8Client)
-
-        # Read the YAML file
-        with open(self.ray_cluster_yaml, 'r') as f:
-            resources = yaml.safe_load_all(f)
-            results = []
-            for resource in resources:
-                group, _, version = resource["apiVersion"].partition('/')
-                if '/' not in resource["apiVersion"]:
-                    group = 'core'  # Assume 'core' if no group specified
-                kind = resource["kind"]
-                # Find the correct API resource for this kind and group
-                api_resource = dyn_client.resources.get(api_group=group,
-                                                        api_version=version,
-                                                        kind=kind)
-                # Create the resource in the specified namespace
-                try:
-                    created_resource = api_resource.create(body=resource, namespace=self.ray_namespace)
-                    results.append(created_resource)
-                    print(f"Successfully created {kind} named {resource['metadata']['name']}")
-                except Exception as e:
-                    print(f"Failed to create {kind}: {str(e)}")
-                    results.append(str(e))
-            return results
-    
     def add_nvidia_device(self,env: dict):
 
         command = "kubectl apply -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.9.0/nvidia-device-plugin.yml"
@@ -225,7 +198,7 @@ class RayClusterOperator(BaseOperator):
             raise AirflowException("Pods failed to become ready within the expected time.")
 
         # Assuming all ports in the service need to be accessed
-        urls = [f"http://{external_dns}:{port.port}" for port in service.spec.ports]
+        urls = {port.name: f"http://{external_dns}:{port.port}" for port in service.spec.ports}
         for url in urls:
             logger.info(f"Service URL: {url}")
 
@@ -237,9 +210,7 @@ class RayClusterOperator(BaseOperator):
 
         self.add_kuberay_operator(env)
 
-        #self.create_ray_cluster(env)
-
-        self.create_ray_cluster_()
+        self.create_ray_cluster(env)
 
         if self.use_gpu:
             self.add_nvidia_device(env)
