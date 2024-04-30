@@ -18,9 +18,8 @@ from airflow.utils.decorators import apply_defaults
 from airflow.utils.operator_helpers import context_to_airflow_vars
 from datetime import timedelta
 from functools import cached_property
-from kubernetes import client, config, watch
+from kubernetes import client, config, utils
 from kubernetes.client.rest import ApiException
-from kubernetes.utils import create_from_yaml
 from logging import Logger
 from providers.ray.triggers.kuberay import RayJobTrigger
 from providers.ray.utils.kuberay import setup_logging
@@ -29,59 +28,6 @@ from typing import TYPE_CHECKING, Container, Sequence, cast
 
 # Set up logging
 logger = setup_logging('kuberay')
-
-
-"""def create_service_and_get_url(namespace="default", yaml_file="ray-head-service.yaml"):
-    config.load_kube_config()
-
-    with open(yaml_file) as f:
-        service_data = yaml.safe_load(f)
-
-    v1 = client.CoreV1Api()
-    created_service = v1.create_namespaced_service(namespace=namespace, body=service_data)
-    logger.info(f"Service {created_service.metadata.name} created. Waiting for an external DNS name...")
-
-    max_retries = 30
-    retry_interval = 40
-
-    external_dns = None
-
-    for attempt in range(max_retries):
-        logger.info(f"Attempt {attempt + 1}: Checking for service's external DNS name...")
-        service = v1.read_namespaced_service(name=created_service.metadata.name, namespace=namespace)
-        
-        if service.status.load_balancer.ingress and service.status.load_balancer.ingress[0].hostname:
-            external_dns = service.status.load_balancer.ingress[0].hostname
-            logger.info(f"External DNS name found: {external_dns}")
-            break
-        else:
-            logger.info("External DNS name not yet available, waiting...")
-            time.sleep(retry_interval)
-
-    if not external_dns:
-        logger.error("Failed to find the external DNS name for the created service within the expected time.")
-        return None
-    
-    # Wait for the endpoints to be ready
-    for attempt in range(max_retries):
-        endpoints = v1.read_namespaced_endpoints(name=created_service.metadata.name, namespace=namespace)
-        if endpoints.subsets and all([subset.addresses for subset in endpoints.subsets]):
-            logger.info("All associated pods are ready.")
-            break
-        else:
-            logger.info(f"Pods not ready, waiting... (Attempt {attempt + 1})")
-            time.sleep(retry_interval)
-    else:
-        logger.error("Pods failed to become ready within the expected time.")
-        raise AirflowException("Pods failed to become ready within the expected time.")
-
-    # Assuming all ports in the service need to be accessed
-    urls = [f"http://{external_dns}:{port.port}" for port in service.spec.ports]
-    for url in urls:
-        logger.info(f"Service URL: {url}")
-
-    return urls"""
-
 
 class RayClusterOperator(BaseOperator):
 
@@ -194,6 +140,15 @@ class RayClusterOperator(BaseOperator):
         self.log.info(result)
         return result
     
+    def create_ray_cluster_(self, yaml_file: str, namespace: str):
+
+        result = utils.create_from_yaml(k8s_client = self.k8Client,
+                                        yaml_file = yaml_file,
+                                        namespace = namespace,
+                                        verbose=True)
+        
+        return result
+    
     def add_nvidia_device(self,env: dict):
 
         command = "kubectl apply -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.9.0/nvidia-device-plugin.yml"
@@ -262,7 +217,9 @@ class RayClusterOperator(BaseOperator):
 
         self.add_kuberay_operator(env)
 
-        self.create_ray_cluster(env)
+        #self.create_ray_cluster(env)
+
+        self.create_ray_cluster_(self.ray_cluster_yaml,self.ray_namespace)
 
         if self.use_gpu:
             self.add_nvidia_device(env)
