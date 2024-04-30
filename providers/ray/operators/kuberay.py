@@ -204,7 +204,7 @@ class RayClusterOperator(BaseOperator):
     
     def create_k8_service(self, namespace: str ="default", yaml_file: str ="ray-head-service.yaml"):
 
-        self.log.info("Creating service with yaml file: "+ yaml)
+        self.log.info("Creating service with yaml file: "+ yaml_file)
 
         config.load_kube_config(self.kubeconfig)
 
