@@ -41,7 +41,6 @@ class RayJobTrigger(BaseTrigger):
             yield TriggerEvent({"status": "error", "message": "No job_id provided to async trigger", "job_id": self.job_id})
 
         try:
-            print(f"Polling for job {self.job_id} every {self.poll_interval} seconds...")
             logger.info(f"Polling for job {self.job_id} every {self.poll_interval} seconds...")
             client = JobSubmissionClient(f"{self.url}")
 
@@ -59,8 +58,7 @@ class RayJobTrigger(BaseTrigger):
                 
                 # Stream logs if available
                 async for multi_line in client.tail_job_logs(self.job_id):
-                    for line in multi_line.split('\n'):
-                        logger.info(line)
+                    logger.info(multi_line)
 
                 await asyncio.sleep(self.poll_interval)
             logger.info(f"Job {self.job_id} completed execution before the timeout period...")

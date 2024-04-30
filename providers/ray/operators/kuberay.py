@@ -199,8 +199,8 @@ class RayClusterOperator(BaseOperator):
 
         # Assuming all ports in the service need to be accessed
         urls = {port.name: f"http://{external_dns}:{port.port}" for port in service.spec.ports}
-        for url in urls:
-            logger.info(f"Service URL: {url}")
+        for port_name, url in urls.items():
+            logger.info(f"Service URL for {port_name}: {url}")
 
         return urls
     
