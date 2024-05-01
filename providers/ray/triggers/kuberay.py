@@ -9,7 +9,7 @@ import logging
 import time
 
 # Set up logging
-logger = setup_logging('kuberay')
+#logger = setup_logging('kuberay')
 
 class RayJobTrigger(BaseTrigger):
     def __init__(self,
@@ -23,8 +23,8 @@ class RayJobTrigger(BaseTrigger):
         self.end_time = end_time
         self.poll_interval = poll_interval
 
-        #self.logger = logging.getLogger(self.__class__.__name__)
-        #self.logger.setLevel(logging.INFO)
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger.setLevel(logging.INFO)
 
         #print("::group::RayJobTriggerLogs")
 
