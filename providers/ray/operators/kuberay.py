@@ -230,22 +230,28 @@ class RayClusterOperator(BaseOperator):
 
 class SubmitRayJob(BaseOperator):
 
-    template_fields = ('url', 'entrypoint', 'wd',)
+    template_fields = ('url','entrypoint','runtime_env','num_cpus','num_gpus','memory')
 
     def __init__(self,*,
-                 url: str,
+                 host: str,
                  entrypoint: str,
-                 wd: str,
+                 runtime_env: dict,
+                 num_cpus: int = 0,
+                 num_gpus: int = 0,
+                 memory: int | float = 0,
+                 resources: dict = None, 
                  timeout: int = 600,
-                 env: dict = None,
                  **kwargs):
         
         super().__init__(**kwargs)
-        self.url = url
+        self.host = host
         self.entrypoint = entrypoint
+        self.runtime_env = runtime_env
+        self.num_cpus = num_cpus
+        self.num_gpus = num_gpus
+        self.memory = memory
+        self.resources = resources
         self.timeout = timeout
-        self.wd = wd
-        self.env = env if env is not None else {}
         self.client = None
         self.job_id = None
         self.status_to_wait_for = {JobStatus.SUCCEEDED, JobStatus.STOPPED, JobStatus.FAILED}
@@ -262,12 +268,16 @@ class SubmitRayJob(BaseOperator):
     def execute(self,context : Context):
 
         if not self.client:
-            self.logger.info(f"URL is: {self.url}")
-            self.client = JobSubmissionClient(f"{self.url}")
+            self.logger.info(f"URL is: {self.host}")
+            self.client = JobSubmissionClient(f"{self.host}")
 
         self.job_id = self.client.submit_job(
             entrypoint= self.entrypoint,
-            runtime_env={"working_dir": self.wd})  #https://docs.ray.io/en/latest/ray-core/handling-dependencies.html#runtime-environments
+            runtime_env=self.runtime_env, #https://docs.ray.io/en/latest/ray-core/handling-dependencies.html#runtime-environments
+            entrypoint_num_cpus = self.num_cpus,
+            entrypoint_num_gpus = self.num_gpus,
+            entrypoint_memory = self.memory,
+            entrypoint_resources = self.resources)  
         
         self.logger.info(f"Ray job submitted with id:{self.job_id}")
 
@@ -277,7 +287,7 @@ class SubmitRayJob(BaseOperator):
             self.defer(
                 timeout= timedelta(hours=1),
                 trigger= RayJobTrigger(
-                    url = self.url,
+                    host = self.host,
                     job_id = self.job_id,
                     end_time= time.time() + self.timeout,
                     poll_interval=2

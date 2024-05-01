@@ -14,12 +14,12 @@ logger = setup_logging('kuberay_trigger')
 class RayJobTrigger(BaseTrigger):
     def __init__(self,
                  job_id: str,
-                 url: str,
+                 host: str,
                  end_time: float,
                  poll_interval: int = 30):
         super().__init__()
         self.job_id = job_id
-        self.url = url
+        self.host = host
         self.end_time = end_time
         self.poll_interval = poll_interval
 
@@ -28,7 +28,7 @@ class RayJobTrigger(BaseTrigger):
     def serialize(self) -> tuple[str, dict[str, Any]]:
         return ("providers.ray.triggers.kuberay.RayJobTrigger", {
             "job_id": self.job_id,
-            "url": self.url,
+            "host": self.host,
             "end_time": self.end_time,
             "poll_interval": self.poll_interval
         })
@@ -39,7 +39,7 @@ class RayJobTrigger(BaseTrigger):
 
         try:
             logger.info(f"Polling for job {self.job_id} every {self.poll_interval} seconds...")
-            client = JobSubmissionClient(f"{self.url}")
+            client = JobSubmissionClient(f"{self.host}")
 
             while self.get_current_status(client=client):
                 if self.end_time < time.time():
