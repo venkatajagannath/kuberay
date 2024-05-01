@@ -230,7 +230,7 @@ class RayClusterOperator(BaseOperator):
 
 class SubmitRayJob(BaseOperator):
 
-    template_fields = ('url','entrypoint','runtime_env','num_cpus','num_gpus','memory')
+    template_fields = ('host','entrypoint','runtime_env','num_cpus','num_gpus','memory')
 
     def __init__(self,*,
                  host: str,
