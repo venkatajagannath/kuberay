@@ -1,6 +1,6 @@
 from airflow.decorators import dag, task
-from airflow.providers.ray.operators.kuberay import RayClusterOperator, SubmitRayJob
-from airflow.providers.ray.operators.eks import CreateEKSCluster, DeleteEKSCluster
+from providers.ray.operators.kuberay import RayClusterOperator, SubmitRayJob
+from providers.ray.operators.eks import CreateEKSCluster, DeleteEKSCluster
 from datetime import datetime, timedelta
 import os
 
