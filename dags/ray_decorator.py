@@ -39,7 +39,7 @@ def taskflow_gpu_task():
         return operator.execute()
 
     @task
-    def ray_cluster():
+    def ray_cluster(create_cluster):
         operator = RayClusterOperator(
             cluster_name = CLUSTERNAME,
             region = REGION,
@@ -64,17 +64,16 @@ def taskflow_gpu_task():
         return operator.execute()
 
     @task
-    def delete_eks_cluster():
+    def delete_eks_cluster(submit_job):
         operator = DeleteEKSCluster(
             cluster_name='RayCluster',
             region='us-east-2'
         )
         return operator.execute()
 
-    create_eks_cluster()
-    ray = ray_cluster()
-    submit_ray_job(ray)
-
-    delete_eks_cluster()
+    create_cluster = create_eks_cluster()
+    ray = ray_cluster(create_cluster)
+    submit_job = submit_ray_job(ray)
+    delete_eks_cluster(submit_job)
 
 gpu_dag = taskflow_gpu_task()
