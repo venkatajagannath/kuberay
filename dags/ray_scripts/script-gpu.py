@@ -1,6 +1,9 @@
 import ray
 import torch
 import time
+import os
+
+os.environ["RAY_LOG_FORCE_DEDUP"] = "0"
 
 ray.init(address='auto')
 
