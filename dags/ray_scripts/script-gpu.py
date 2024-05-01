@@ -1,7 +1,6 @@
 import ray
 import torch
 import time
-import os
 
 ray.init(address='auto')
 
