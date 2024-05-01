@@ -9,7 +9,7 @@ import logging
 import time
 
 # Set up logging
-logger = setup_logging('kuberay_trigger')
+logger = setup_logging('kuberay')
 
 class RayJobTrigger(BaseTrigger):
     def __init__(self,
