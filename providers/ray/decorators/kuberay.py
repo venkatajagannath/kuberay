@@ -28,29 +28,30 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
     }
 
     def __init__(self,
+                 entrypoint: str,
+                 runtime_env: dict,
+                 num_cpus: int = 0,
+                 num_gpus: int = 0,
+                 memory: int | float = 0,
                  node_group: str = None,
-                 *,
-                 python_callable: Callable,
-                 op_args: Collection[Any] | None = None,
-                 op_kwargs: Mapping[str, Any] | None = None,
                  **kwargs,) -> None:
-        
+
         self.node_group = node_group
 
         super().__init__(
-            python_callable=python_callable,
-            op_args=op_args,
-            op_kwargs=op_kwargs,
-            multiple_outputs=False,
+            entrypoint = entrypoint,
+            runtime_env = runtime_env,
+            num_cpus = num_cpus,
+            num_gpus = num_gpus,
+            memory = memory
             **kwargs,
         )
 
-
     def execute(self, context: Context):
 
-        context_merge(context, self.op_kwargs)
-        kwargs = determine_kwargs(self.python_callable, self.op_args, context)
-
+        if self.node_group:
+            self.resources = {self.node_group:0.1}
+        
         return super().execute(context)
     
 
