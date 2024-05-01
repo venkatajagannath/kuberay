@@ -63,7 +63,7 @@ ray_cluster = RayClusterOperator(task_id="RayClusterOperator",
                                  dag = dag,)
 
 submit_ray_job = SubmitRayJob(task_id="SubmitRayJob",
-                              url = "{{ task_instance.xcom_pull(task_ids='RayClusterOperator', key='dashboard') }}",
+                              host = "{{ task_instance.xcom_pull(task_ids='RayClusterOperator', key='dashboard') }}",
                               entrypoint='python script-gpu.py',
                               runtime_env= RAY_RUNTIME_ENV,
                               num_cpus=1,
