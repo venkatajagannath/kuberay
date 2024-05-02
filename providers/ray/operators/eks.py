@@ -101,7 +101,11 @@ class CreateEKSCluster(BaseOperator):
     def create_eks_cluster(self,env : dict):
 
         command = f"""
-        eksctl create cluster -f {self.eks_k8_spec}
+        if eksctl get cluster --name {self.cluster_name} > /dev/null 2>&1; then
+            echo "Cluster already exists
+        else
+            eksctl create cluster -f {self.eks_k8_spec}
+        fi
         """
         result = self.execute_bash_command(command,env)
         logging.info(result)
