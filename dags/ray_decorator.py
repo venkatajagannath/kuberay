@@ -44,7 +44,7 @@ def taskflow_gpu_task():
         return operator.execute({})
     
     @ray_task(host="http://a24b5747b7474435aa7abe4681ec6f49-1521101610.us-east-2.elb.amazonaws.com:8265/",
-              entrypoint='python script-gpu.py',runtime_env={"working_dir": '/usr/local/airflow/dags/ray_scripts'},num_cpus=1,num_gpus=0)
+              entrypoint='python script-gpu.py',runtime_env={"working_dir": '/usr/local/airflow/dags/ray_scripts'},num_cpus=1,num_gpus=0,memory=0)
     def ray_decorator_task():
         return
 
