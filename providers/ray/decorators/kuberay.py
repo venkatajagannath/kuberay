@@ -33,7 +33,7 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
                  runtime_env: dict,
                  num_cpus: int = 0,
                  num_gpus: int = 0,
-                 memory: int | float = 0,
+                 memory: int = 0,
                  node_group: str = None,
                  **kwargs,) -> None:
 
