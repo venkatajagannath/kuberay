@@ -33,10 +33,11 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
                  runtime_env: dict,
                  num_cpus: int = 0,
                  num_gpus: int = 0,
-                 memory: int = 0,
+                 memory: int | float = 0,
                  node_group: str = None,
                  **kwargs,) -> None:
 
+        self.memory = memory
         self.node_group = node_group
 
         super().__init__(
@@ -45,7 +46,7 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
             runtime_env = runtime_env,
             num_cpus = num_cpus,
             num_gpus = num_gpus,
-            memory = memory
+            memory = self.memory
             **kwargs,
         )
 
