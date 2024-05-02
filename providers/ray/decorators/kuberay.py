@@ -41,7 +41,7 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
         self.node_group = node_group
 
         if host is None:
-            host = os.getenv['RAY_DASHBOARD_URL']
+            host = os.getenv('RAY_DASHBOARD_URL')
 
         super().__init__(
             host = host,
