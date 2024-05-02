@@ -28,6 +28,7 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
     }
 
     def __init__(self,
+                 host: str,
                  entrypoint: str,
                  runtime_env: dict,
                  num_cpus: int = 0,
@@ -39,6 +40,7 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
         self.node_group = node_group
 
         super().__init__(
+            host = host,
             entrypoint = entrypoint,
             runtime_env = runtime_env,
             num_cpus = num_cpus,

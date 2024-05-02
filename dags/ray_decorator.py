@@ -27,60 +27,27 @@ KUBECONFIG_PATH = os.path.join(kubeconfig_directory, "kubeconfig.yaml")
 )
 
 def taskflow_gpu_task():
+    
     @task
-    def create_eks_cluster():
-        # The function body can replicate what the operator would do, with appropriate modifications
-        operator = CreateEKSCluster(
-            task_id = "Create_cluster",
-            cluster_name = CLUSTERNAME,
-            region = REGION,
-            eks_k8_spec = K8SPEC,
-            kubeconfig_path = KUBECONFIG_PATH
-        )
-        return operator.execute({})
-
-    @task
-    def ray_cluster(create_cluster):
-        operator = RayClusterOperator(
-            task_id="Ray_cluster_operator",
-            cluster_name = CLUSTERNAME,
-            region = REGION,
-            ray_namespace='ray',
-            ray_cluster_yaml = RAY_SPEC,
-            ray_svc_yaml = RAY_SVC,
-            kubeconfig = KUBECONFIG_PATH,
-            env = {},
-            ray_gpu=True
-        )
-        return operator.execute({})
-
-    @task
-    def submit_ray_job(host):
+    def submit_ray_job():
         operator = SubmitRayJob(
             task_id = "Submit_ray_job",
-            host=host["dashboard"],
+            host="http://a24b5747b7474435aa7abe4681ec6f49-1521101610.us-east-2.elb.amazonaws.com:8265/",
             entrypoint='python script-gpu.py',
             runtime_env={"working_dir": '/usr/local/airflow/dags/ray_scripts'},
             num_cpus=1,
-            num_gpus=1,
+            num_gpus=0,
             memory=0,
             resources={},
         )
         return operator.execute({})
+    
+    @task.ray(host="http://a24b5747b7474435aa7abe4681ec6f49-1521101610.us-east-2.elb.amazonaws.com:8265/",
+              entrypoint='python script-gpu.py',runtime_env={"working_dir": '/usr/local/airflow/dags/ray_scripts'},num_cpus=1,num_gpus=0)
+    def ray_decorator_task():
+        return
 
-    @task
-    def delete_eks_cluster(submit_job):
-        operator = DeleteEKSCluster(
-            task_id = "delete_eks_cluster",
-            cluster_name='RayCluster',
-            region='us-east-2',
-            env = {},
-        )
-        return operator.execute({})
-
-    create_cluster = create_eks_cluster()
-    ray = ray_cluster(create_cluster)
-    submit_job = submit_ray_job(ray)
-    delete_eks_cluster(submit_job)
+    
+    submit_ray_job()
 
 gpu_dag = taskflow_gpu_task()
