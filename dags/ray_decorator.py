@@ -49,6 +49,7 @@ def taskflow_gpu_task():
             ray_cluster_yaml = RAY_SPEC,
             ray_svc_yaml = RAY_SVC,
             kubeconfig = KUBECONFIG_PATH,
+            env = {},
             ray_gpu=True
         )
         return operator.execute({})
@@ -62,7 +63,8 @@ def taskflow_gpu_task():
             runtime_env={"working_dir": '/usr/local/airflow/dags/ray_scripts'},
             num_cpus=1,
             num_gpus=1,
-            memory=0
+            memory=0,
+            resources={},
         )
         return operator.execute({})
 
@@ -71,7 +73,8 @@ def taskflow_gpu_task():
         operator = DeleteEKSCluster(
             task_id = "delete_eks_cluster",
             cluster_name='RayCluster',
-            region='us-east-2'
+            region='us-east-2',
+            env = {},
         )
         return operator.execute({})
 
