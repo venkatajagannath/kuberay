@@ -46,7 +46,7 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
             runtime_env = runtime_env,
             num_cpus = num_cpus,
             num_gpus = num_gpus,
-            memory = self.memory
+            memory = memory,
             **kwargs,
         )
 
