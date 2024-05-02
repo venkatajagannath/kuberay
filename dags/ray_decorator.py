@@ -1,6 +1,7 @@
 from airflow.decorators import dag, task
 from providers.ray.operators.kuberay import RayClusterOperator, SubmitRayJob
 from providers.ray.operators.eks import CreateEKSCluster, DeleteEKSCluster
+from providers.ray.decorators.kuberay import ray_task
 from datetime import datetime, timedelta
 import os
 
@@ -42,7 +43,7 @@ def taskflow_gpu_task():
         )
         return operator.execute({})
     
-    @task.ray(host="http://a24b5747b7474435aa7abe4681ec6f49-1521101610.us-east-2.elb.amazonaws.com:8265/",
+    @ray_task(host="http://a24b5747b7474435aa7abe4681ec6f49-1521101610.us-east-2.elb.amazonaws.com:8265/",
               entrypoint='python script-gpu.py',runtime_env={"working_dir": '/usr/local/airflow/dags/ray_scripts'},num_cpus=1,num_gpus=0)
     def ray_decorator_task():
         return
