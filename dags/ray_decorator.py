@@ -37,7 +37,7 @@ def taskflow_gpu_task():
             eks_k8_spec = K8SPEC,
             kubeconfig_path = KUBECONFIG_PATH
         )
-        return operator.execute()
+        return operator.execute({})
 
     @task
     def ray_cluster(create_cluster):
@@ -51,7 +51,7 @@ def taskflow_gpu_task():
             kubeconfig = KUBECONFIG_PATH,
             ray_gpu=True
         )
-        return operator.execute()
+        return operator.execute({})
 
     @task
     def submit_ray_job(host):
@@ -64,7 +64,7 @@ def taskflow_gpu_task():
             num_gpus=1,
             memory=0
         )
-        return operator.execute()
+        return operator.execute({})
 
     @task
     def delete_eks_cluster(submit_job):
@@ -73,7 +73,7 @@ def taskflow_gpu_task():
             cluster_name='RayCluster',
             region='us-east-2'
         )
-        return operator.execute()
+        return operator.execute({})
 
     create_cluster = create_eks_cluster()
     ray = ray_cluster(create_cluster)
