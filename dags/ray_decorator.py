@@ -50,5 +50,6 @@ def taskflow_gpu_task():
 
     
     submit_ray_job()
+    ray_decorator_task()
 
 gpu_dag = taskflow_gpu_task()
