@@ -31,7 +31,7 @@ def taskflow_gpu_task():
     def create_eks_cluster():
         # The function body can replicate what the operator would do, with appropriate modifications
         operator = CreateEKSCluster(
-            task_id = "Create_cluster"
+            task_id = "Create_cluster",
             cluster_name = CLUSTERNAME,
             region = REGION,
             eks_k8_spec = K8SPEC,
@@ -42,7 +42,7 @@ def taskflow_gpu_task():
     @task
     def ray_cluster(create_cluster):
         operator = RayClusterOperator(
-            task_id="Ray_cluster_operator"
+            task_id="Ray_cluster_operator",
             cluster_name = CLUSTERNAME,
             region = REGION,
             ray_namespace='ray',
@@ -56,7 +56,7 @@ def taskflow_gpu_task():
     @task
     def submit_ray_job(host):
         operator = SubmitRayJob(
-            task_id = "Submit_ray_job"
+            task_id = "Submit_ray_job",
             host=host["dashboard"],
             entrypoint='python script-gpu.py',
             runtime_env={"working_dir": '/usr/local/airflow/dags/ray_scripts'},
@@ -69,7 +69,7 @@ def taskflow_gpu_task():
     @task
     def delete_eks_cluster(submit_job):
         operator = DeleteEKSCluster(
-            task_id = "delete_eks_cluster"
+            task_id = "delete_eks_cluster",
             cluster_name='RayCluster',
             region='us-east-2'
         )
