@@ -28,9 +28,9 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
     }
 
     def __init__(self,
-                 host: str,
                  entrypoint: str,
                  runtime_env: dict,
+                 host: str = None,
                  num_cpus: int = 0,
                  num_gpus: int = 0,
                  memory: int = 0,
@@ -39,6 +39,9 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
 
         self.memory = memory
         self.node_group = node_group
+
+        if host is None:
+            host = os.getenv['RAY_DASHBOARD_URL']
 
         super().__init__(
             host = host,

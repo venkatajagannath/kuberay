@@ -29,8 +29,7 @@ KUBECONFIG_PATH = os.path.join(kubeconfig_directory, "kubeconfig.yaml")
 
 def taskflow_gpu_task():
     
-    @ray_task(host="http://a2fb9d97a6b324edf92674b0be4b2560-1142979812.us-east-2.elb.amazonaws.com:8265",
-              entrypoint='python script.py',runtime_env={"working_dir": '/usr/local/airflow/dags/ray_scripts'},num_cpus=1,num_gpus=0,memory=0)
+    @ray_task(entrypoint='python script.py',runtime_env={"working_dir": '/usr/local/airflow/dags/ray_scripts'},num_cpus=1,num_gpus=0,memory=0)
     def ray_decorator_task():
         return
 
