@@ -264,7 +264,12 @@ class SubmitRayJob(BaseOperator):
             return self.client.delete_job(self.job_id)
         else:
             return
-
+        
+    def on_kill(self):
+        if self.client:   
+            return self.client.delete_job(self.job_id)
+        else:
+            return
     def execute(self,context : Context):
 
         if not self.client:
