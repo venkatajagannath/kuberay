@@ -58,7 +58,7 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
 
         super().__init__(
             host = self.host,
-            entrypoint = self.entrypoint,
+            entrypoint = NOTSET,
             runtime_env = self.runtime_env,
             num_cpus = self.num_cpus,
             num_gpus = self.num_gpus,
@@ -74,9 +74,18 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
         py_source = self.get_python_source().splitlines()
         function_body = textwrap.dedent('\n'.join(py_source[1:]))
 
-        self.logger.info(function_body)
-        
-        return super().execute(context)
+        with TemporaryDirectory(prefix="venv") as tmp_dir:
+            script_filename = os.path.join(tmp_dir, "script.py")
+
+            with open(script_filename, "wb") as file:
+                file.write(function_body)
+            
+            self.entrypoint = 'python '+ script_filename
+
+
+            self.logger.info(function_body)
+            
+            return super().execute(context)
     
 
 def ray_task(

@@ -42,7 +42,7 @@ def taskflow_gpu_task():
 
         @ray.remote
         def hello_world():
-            return "hello world"
+            return "123 -- hello world"
 
         ray.init()
         print(ray.get(hello_world.remote()))
