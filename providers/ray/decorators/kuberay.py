@@ -3,6 +3,8 @@ from __future__ import annotations
 import os
 import uuid
 import textwrap
+import shutil
+from tempfile import mkdtemp
 from typing import TYPE_CHECKING, Callable, Sequence
 from tempfile import TemporaryDirectory
 from airflow.decorators.base import DecoratedOperator, task_decorator_factory
@@ -50,23 +52,33 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
         function_body = textwrap.dedent('\n'.join(py_source[1:]))
 
         self.logger.info(function_body)
+        tmp_dir = None
 
-        script_filename = "./script.py"
         try:
+            # Create a temporary directory manually
+            tmp_dir = mkdtemp(prefix="ray")
+
+            script_filename = os.path.join(tmp_dir, "script.py")
             with open(script_filename, "w") as file:
                 file.write(function_body)
-                self.logger.info(f"Script written to {script_filename}.")
 
-            self.entrypoint = f'python {script_filename}'
-            self.runtime_env['working_dir'] = os.path.dirname(script_filename)
+            self.entrypoint = f'python script.py'
+            self.runtime_env['working_dir'] = tmp_dir
 
             self.logger.info("Running ray job...")
             result = super().execute(context)
-            self.logger.info("Ray job completed.")
-            return result
+
         except Exception as e:
-            self.log.error(f"Exception during execution: {e}")
+            self.log.error(f"Failed during execution with error: {e}")
             raise AirflowException("Job submission failed")
+
+        finally:
+            # Clean up the temporary directory if it was created
+            if tmp_dir and os.path.exists(tmp_dir):
+                shutil.rmtree(tmp_dir)
+
+        return result
+
         
 def ray_task(
         python_callable: Callable | None = None,
