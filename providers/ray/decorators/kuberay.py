@@ -57,9 +57,9 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
             self.memory = self.config['memory']
         
         # Create unique folder name
-        self.file_path = os.path.join('/usr/local/airflow/','folder_'+str(uuid.uuid4()))
-        self.script_filename = os.path.join(self.file_path, "script.py")
-
+        self.folder_path = os.path.join('/usr/local/airflow/','folder_'+str(uuid.uuid4()))
+        os.makedirs(self.folder_path, exist_ok=True)
+        
         super().__init__(
             host = self.host,
             entrypoint = NOTSET,
@@ -78,6 +78,7 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
         py_source = self.get_python_source().splitlines()
         function_body = textwrap.dedent('\n'.join(py_source[1:]))
 
+        self.script_filename = os.path.join(self.folder_path, "script.py")
         with open(self.script_filename, "w") as file:
             file.write(function_body)
         
