@@ -57,7 +57,7 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
             self.memory = self.config['memory']
         
         # Create unique folder name
-        self.logger.info("Current working directory: "+os.getcwd())
+        self.log.info("Current working directory: "+os.getcwd())
         self.folder_path = str(uuid.uuid4())
         os.makedirs(self.folder_path, exist_ok=True)
         
