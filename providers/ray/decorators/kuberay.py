@@ -62,8 +62,8 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
             with open(script_filename, "w") as file:
                 file.write(function_body)
 
-            self.entrypoint = f'python script.py'
-            self.runtime_env['working_dir'] = tmp_dir
+            #self.entrypoint = f'python script.py'
+            #self.runtime_env['working_dir'] = tmp_dir
 
             self.logger.info("Running ray job...")
             result = super().execute(context)
