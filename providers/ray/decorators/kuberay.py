@@ -57,7 +57,7 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
             self.memory = self.config['memory']
         
         # Create unique folder name
-        self.folder_path = os.path.join('/usr/local/airflow/dags/tmp/',str(uuid.uuid4()))
+        self.folder_path = os.path.join('./tmp/',str(uuid.uuid4()))
         os.makedirs(self.folder_path, exist_ok=True)
         
         super().__init__(
