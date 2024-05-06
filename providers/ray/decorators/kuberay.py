@@ -60,7 +60,7 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
             self.log.error(f"Failed to write to {self.script_filename}: {e}")
             raise
 
-        self.entrypoint = f'python {self.script_filename}'
+        self.entrypoint = f'python script.py'
         self.runtime_env['working_dir'] = self.folder_path
         self.log.info(f"Set runtime environment: {self.runtime_env}")
 
