@@ -47,8 +47,6 @@ def taskflow_gpu_task():
         ray.init()
         print(ray.get(hello_world.remote()))
 
-        return
-
     
     ray_decorator_task()
 

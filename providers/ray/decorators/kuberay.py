@@ -49,6 +49,8 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
         py_source = self.get_python_source().splitlines()
         function_body = textwrap.dedent('\n'.join(py_source[1:]))
 
+        self.logger.info(function_body)
+
         try:
             with TemporaryDirectory(prefix="venv") as tmp_dir:
                 script_filename = os.path.join(tmp_dir, "script.py")
