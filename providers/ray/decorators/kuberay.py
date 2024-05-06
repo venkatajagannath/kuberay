@@ -4,8 +4,10 @@ import os
 import uuid
 import textwrap
 from typing import TYPE_CHECKING, Callable, Sequence
+from tempfile import TemporaryDirectory
 from airflow.decorators.base import DecoratedOperator, task_decorator_factory
 from airflow.utils.context import Context
+from airflow.exceptions import AirflowException
 from providers.ray.operators.kuberay import SubmitRayJob
 
 if TYPE_CHECKING:
@@ -30,11 +32,6 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
         self.num_gpus = self.config.get('num_gpus', None)
         self.memory = self.config.get('memory', None)
 
-        # Create unique folder name and ensure the directory exists
-        self.folder_path = str(uuid.uuid4())
-        os.makedirs(self.folder_path, exist_ok=True)
-        self.log.info(f"Created folder {self.folder_path} in {os.getcwd()}")
-
         super().__init__(
             host=self.host,
             entrypoint=self.entrypoint,
@@ -52,20 +49,21 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
         py_source = self.get_python_source().splitlines()
         function_body = textwrap.dedent('\n'.join(py_source[1:]))
 
-        self.script_filename = os.path.join(self.folder_path, "script.py")
         try:
-            with open(self.script_filename, "w") as file:
-                file.write(function_body)
+            with TemporaryDirectory(prefix="venv") as tmp_dir:
+                script_filename = os.path.join(tmp_dir, "script.py")
+
+                with open(script_filename, "wb") as file:
+                    file.write(function_body)
+
+                self.entrypoint = 'python script.py'
+                self.runtime_env['working_dir'] = tmp_dir
+
+                return super().execute(context)
         except IOError as e:
             self.log.error(f"Failed to write to {self.script_filename}: {e}")
-            raise
-
-        self.entrypoint = f'python script.py'
-        self.runtime_env['working_dir'] = self.folder_path
-        self.log.info(f"Set runtime environment: {self.runtime_env}")
-
-        return super().execute(context)
-
+            raise AirflowException(f"Job submission failed")
+        
 def ray_task(
         python_callable: Callable | None = None,
         multiple_outputs: bool | None = None,
