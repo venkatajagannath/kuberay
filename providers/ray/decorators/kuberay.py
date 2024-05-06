@@ -59,7 +59,7 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
         super().__init__(
             host = self.host,
             entrypoint = NOTSET,
-            runtime_env = self.runtime_env,
+            runtime_env = NOTSET,
             num_cpus = self.num_cpus,
             num_gpus = self.num_gpus,
             memory = self.memory,
@@ -81,6 +81,7 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
                 file.write(function_body)
             
             self.entrypoint = 'python '+ script_filename
+            self.runtime_env = None
 
 
             self.logger.info(function_body)
