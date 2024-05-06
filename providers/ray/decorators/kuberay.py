@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import textwrap
 import os
 import uuid
 from shlex import quote
@@ -69,6 +70,11 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
 
         if self.node_group:
             self.resources = {self.node_group:0.1}
+        
+        py_source = self.get_python_source().splitlines()
+        function_body = textwrap.dedent('\n'.join(py_source[1:]))
+
+        self.logger.info(function_body)
         
         return super().execute(context)
     
