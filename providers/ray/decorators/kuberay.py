@@ -28,28 +28,40 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
     }
 
     def __init__(self,
-                 entrypoint: str,
-                 runtime_env: dict,
-                 host: str = None,
-                 num_cpus: int = 0,
-                 num_gpus: int = 0,
-                 memory: int = 0,
+                 config: dict,
                  node_group: str = None,
                  **kwargs,) -> None:
 
-        self.memory = memory
+        self.config = config
         self.node_group = node_group
 
         if host is None:
             host = os.getenv('RAY_DASHBOARD_URL')
+        elif 'host' in self.config:
+            self.host = self.config['host']
+        
+        if 'entrypoint' in self.config:
+            self.entrypoint = self.config['entrypoint']
+
+        if 'runtime_env' in self.config:
+            self.runtime_env = self.config['runtime_env']
+        
+        if 'num_cpus' in self.config:
+            self.num_cpus = self.config['num_cpus']
+        
+        if 'num_gpus' in self.config:
+            self.num_gpus = self.config['num_gpus']
+        
+        if 'memory' in self.config:
+            self.memory = self.config['memory']
 
         super().__init__(
-            host = host,
-            entrypoint = entrypoint,
-            runtime_env = runtime_env,
-            num_cpus = num_cpus,
-            num_gpus = num_gpus,
-            memory = memory,
+            host = self.host,
+            entrypoint = self.entrypoint,
+            runtime_env = self.runtime_env,
+            num_cpus = self.num_cpus,
+            num_gpus = self.num_gpus,
+            memory = self.memory,
             **kwargs,
         )
 

@@ -15,6 +15,12 @@ kubeconfig_directory = f"/tmp/airflow_kubeconfigs/{REGION}/{CLUSTERNAME}/"
 os.makedirs(kubeconfig_directory, exist_ok=True)  # Ensure the directory exists
 KUBECONFIG_PATH = os.path.join(kubeconfig_directory, "kubeconfig.yaml")
 
+RAY_TASK_CONFIG = {'entrypoint': 'python script.py',
+                   'runtime_env':{"working_dir": '/usr/local/airflow/dags/ray_scripts'},
+                   'num_cpus':1,
+                   'num_gpus':0,
+                   'memory':0}
+
 @dag(
     'ray_decorator',
     start_date=datetime(2024, 3, 26),
@@ -29,7 +35,7 @@ KUBECONFIG_PATH = os.path.join(kubeconfig_directory, "kubeconfig.yaml")
 
 def taskflow_gpu_task():
     
-    @ray_task(entrypoint='python script.py',runtime_env={"working_dir": '/usr/local/airflow/dags/ray_scripts'},num_cpus=1,num_gpus=0,memory=0)
+    @ray_task(config = RAY_TASK_CONFIG,node_group=None)
     def ray_decorator_task():
         return
 
