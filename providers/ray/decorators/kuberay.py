@@ -83,7 +83,7 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
             file.write(function_body)
         
         self.entrypoint = 'python '+ self.script_filename
-        self.runtime_env = {"working_dir": self.file_path}
+        self.runtime_env = {"working_dir": self.folder_path}
 
 
         self.logger.info(function_body)
