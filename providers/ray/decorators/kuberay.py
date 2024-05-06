@@ -57,7 +57,7 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
             self.memory = self.config['memory']
         
         # Create unique folder name
-        self.folder_path = os.path.join('/usr/local/airflow/','folder_'+str(uuid.uuid4()))
+        self.folder_path = os.path.join(os.getcwd(),str(uuid.uuid4()))
         os.makedirs(self.folder_path, exist_ok=True)
         
         super().__init__(
@@ -84,7 +84,6 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
         
         self.entrypoint = 'python '+ self.script_filename
         self.runtime_env = {"working_dir": self.folder_path}
-
 
         self.logger.info(function_body)
         
