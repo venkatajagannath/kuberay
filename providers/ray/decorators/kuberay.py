@@ -36,10 +36,10 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
         self.config = config
         self.node_group = node_group
 
-        if host is None:
-            host = os.getenv('RAY_DASHBOARD_URL')
-        elif 'host' in self.config:
+        if 'host' in self.config:
             self.host = self.config['host']
+        else:
+            self.host = os.getenv('RAY_DASHBOARD_URL')
         
         if 'entrypoint' in self.config:
             self.entrypoint = self.config['entrypoint']
