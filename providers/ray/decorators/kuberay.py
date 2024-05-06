@@ -51,23 +51,22 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
 
         self.logger.info(function_body)
 
+        script_filename = "./script.py"
         try:
-            with TemporaryDirectory(prefix="venv") as tmp_dir:
-                script_filename = os.path.join(tmp_dir, "script.py")
+            with open(script_filename, "w") as file:
+                file.write(function_body)
+                self.logger.info(f"Script written to {script_filename}.")
 
-                with open(script_filename, "w") as file:
-                    file.write(function_body)
+            self.entrypoint = f'python {script_filename}'
+            self.runtime_env['working_dir'] = os.path.dirname(script_filename)
 
-                self.entrypoint = 'python script.py'
-                self.runtime_env['working_dir'] = tmp_dir
-
-                self.log.info("Running ray job...")
-                result = super().execute(context)
-
-                return result
-        except IOError as e:
-            self.log.error(f"Failed to write to {self.script_filename}: {e}")
-            raise AirflowException(f"Job submission failed")
+            self.logger.info("Running ray job...")
+            result = super().execute(context)
+            self.logger.info("Ray job completed.")
+            return result
+        except Exception as e:
+            self.log.error(f"Exception during execution: {e}")
+            raise AirflowException("Job submission failed")
         
 def ray_task(
         python_callable: Callable | None = None,
