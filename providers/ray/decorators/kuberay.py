@@ -55,6 +55,10 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
         
         if 'memory' in self.config:
             self.memory = self.config['memory']
+        
+        # Create unique folder name
+        self.file_path = os.path.join('/usr/local/airflow/','folder_'+str(uuid.uuid4()))
+        self.script_filename = os.path.join(self.file_path, "script.py")
 
         super().__init__(
             host = self.host,
@@ -74,20 +78,16 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
         py_source = self.get_python_source().splitlines()
         function_body = textwrap.dedent('\n'.join(py_source[1:]))
 
-        with TemporaryDirectory(prefix="venv") as tmp_dir:
-            file_path = os.path.join('/usr/local/airflow/',tmp_dir)
-            script_filename = os.path.join(file_path, "script.py")
-
-            with open(script_filename, "w") as file:
-                file.write(function_body)
-            
-            self.entrypoint = 'python '+ script_filename
-            self.runtime_env = {"working_dir": file_path}
+        with open(self.script_filename, "w") as file:
+            file.write(function_body)
+        
+        self.entrypoint = 'python '+ self.script_filename
+        self.runtime_env = {"working_dir": self.file_path}
 
 
-            self.logger.info(function_body)
-            
-            return super().execute(context)
+        self.logger.info(function_body)
+        
+        return super().execute(context)
     
 
 def ray_task(
