@@ -61,7 +61,10 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
                 self.entrypoint = 'python script.py'
                 self.runtime_env['working_dir'] = tmp_dir
 
-                return super().execute(context)
+                self.log.info("Running ray job...")
+                result = super().execute(context)
+
+                return result
         except IOError as e:
             self.log.error(f"Failed to write to {self.script_filename}: {e}")
             raise AirflowException(f"Job submission failed")
