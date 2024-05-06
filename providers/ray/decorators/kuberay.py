@@ -75,13 +75,14 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
         function_body = textwrap.dedent('\n'.join(py_source[1:]))
 
         with TemporaryDirectory(prefix="venv") as tmp_dir:
-            script_filename = os.path.join(tmp_dir, "script.py")
+            file_path = os.path.join('/usr/local/airflow/',tmp_dir)
+            script_filename = os.path.join(file_path, "script.py")
 
             with open(script_filename, "w") as file:
                 file.write(function_body)
             
             self.entrypoint = 'python '+ script_filename
-            self.runtime_env = None
+            self.runtime_env = {"working_dir": file_path}
 
 
             self.logger.info(function_body)
