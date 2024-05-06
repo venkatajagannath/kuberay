@@ -77,7 +77,7 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
         with TemporaryDirectory(prefix="venv") as tmp_dir:
             script_filename = os.path.join(tmp_dir, "script.py")
 
-            with open(script_filename, "wb") as file:
+            with open(script_filename, "w") as file:
                 file.write(function_body)
             
             self.entrypoint = 'python '+ script_filename
