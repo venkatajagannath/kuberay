@@ -52,6 +52,10 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
         function_body = textwrap.dedent('\n'.join(py_source[1:]))
 
         self.logger.info(function_body)
+
+        return super().execute(context)
+
+        """
         tmp_dir = None
 
         try:
@@ -78,7 +82,7 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
                 shutil.rmtree(tmp_dir)
 
         return result
-
+"""
         
 def ray_task(
         python_callable: Callable | None = None,
