@@ -38,14 +38,14 @@ def taskflow_gpu_task():
     @ray_task(config = RAY_TASK_CONFIG,node_group=None)
     def ray_decorator_task():
 
-        import ray
+        """import ray
 
         @ray.remote
         def hello_world():
             return "123 -- hello world"
 
         ray.init()
-        print(ray.get(hello_world.remote()))
+        print(ray.get(hello_world.remote()))"""
 
     
     ray_decorator_task()
