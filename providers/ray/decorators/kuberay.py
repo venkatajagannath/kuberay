@@ -49,7 +49,8 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
         )
 
     def execute(self, context: Context):
-        with TemporaryDirectory(prefix="ray_") as tmp_dir:
+        tmp_dir = mkdtemp(prefix="ray_")  # Manually create a temp directory
+        try:
             py_source = self.get_python_source().splitlines()
             function_body = textwrap.dedent('\n'.join(py_source))
             self.logger.info(function_body)
@@ -58,24 +59,18 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
             with open(script_filename, "w") as file:
                 file.write(f"{function_body}\n{self.extract_function_name()}()")
 
-            # Make sure the file exists before proceeding
-            if not os.path.exists(script_filename):
-                raise FileNotFoundError(f"The script file {script_filename} was not found.")
-
-            # Updating entrypoint to the actual script path
             self.entrypoint = f'python {script_filename}'
             self.runtime_env['working_dir'] = tmp_dir
+            self.logger.info("Running ray job...")
 
-            self.logger.info(f"Running ray job with entrypoint {self.entrypoint}")
-            try:
-                # Ensure that the script file is found and executable
-                if not os.access(script_filename, os.X_OK):
-                    os.chmod(script_filename, 0o755)
-
-                result = super().execute(context)
-            except Exception as e:
-                self.log.error(f"Failed during execution with error: {e}")
-                raise AirflowException("Job submission failed")
+            result = super().execute(context)  # Execute the job
+        except Exception as e:
+            self.log.error(f"Failed during execution with error: {e}")
+            raise AirflowException("Job submission failed")
+        finally:
+            # Cleanup: Delayed until after job execution confirmation
+            if os.path.exists(tmp_dir):
+                shutil.rmtree(tmp_dir)
 
         return result
 
