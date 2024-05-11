@@ -49,27 +49,36 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
         )
 
     def execute(self, context: Context):
-        with TemporaryDirectory(prefix="ray") as tmp_dir:
+        with TemporaryDirectory(prefix="ray_") as tmp_dir:
             py_source = self.get_python_source().splitlines()
             function_body = textwrap.dedent('\n'.join(py_source))
-
             self.logger.info(function_body)
 
             script_filename = os.path.join(tmp_dir, "script.py")
             with open(script_filename, "w") as file:
                 file.write(f"{function_body}\n{self.extract_function_name()}()")
-            
+
+            # Make sure the file exists before proceeding
+            if not os.path.exists(script_filename):
+                raise FileNotFoundError(f"The script file {script_filename} was not found.")
+
+            # Updating entrypoint to the actual script path
             self.entrypoint = f'python {script_filename}'
             self.runtime_env['working_dir'] = tmp_dir
 
-            self.logger.info("Running ray job...")
+            self.logger.info(f"Running ray job with entrypoint {self.entrypoint}")
             try:
+                # Ensure that the script file is found and executable
+                if not os.access(script_filename, os.X_OK):
+                    os.chmod(script_filename, 0o755)
+
                 result = super().execute(context)
             except Exception as e:
                 self.log.error(f"Failed during execution with error: {e}")
                 raise AirflowException("Job submission failed")
 
         return result
+
 
     def extract_function_name(self):
         # Assuming the function name can be extracted from the source
