@@ -7,6 +7,7 @@ import shutil
 from tempfile import mkdtemp
 from typing import TYPE_CHECKING, Callable, Sequence
 from tempfile import TemporaryDirectory
+from airflow.utils.types import NOTSET
 from airflow.decorators.base import DecoratedOperator, task_decorator_factory
 from airflow.utils.context import Context
 from airflow.exceptions import AirflowException
@@ -25,64 +26,42 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
     }
 
     def __init__(self, config: dict, node_group: str = None, **kwargs) -> None:
+        super().__init__(**kwargs)
         self.config = config
         self.node_group = node_group
         self.host = self.config.get('host', os.getenv('RAY_DASHBOARD_URL'))
-        self.entrypoint = self.config.get('entrypoint', None)
+        self.entrypoint = self.config.get('entrypoint')
         self.runtime_env = self.config.get('runtime_env', {})
-        self.num_cpus = self.config.get('num_cpus', None)
-        self.num_gpus = self.config.get('num_gpus', None)
-        self.memory = self.config.get('memory', None)
-
-        super().__init__(
-            host=self.host,
-            entrypoint=self.entrypoint,
-            runtime_env=self.runtime_env,
-            num_cpus=self.num_cpus,
-            num_gpus=self.num_gpus,
-            memory=self.memory,
-            **kwargs,
-        )
+        self.num_cpus = self.config.get('num_cpus')
+        self.num_gpus = self.config.get('num_gpus')
+        self.memory = self.config.get('memory')
 
     def execute(self, context: Context):
-        if self.node_group:
-            self.resources = {self.node_group: 0.1}
+        with TemporaryDirectory(prefix="ray") as tmp_dir:
+            py_source = self.get_python_source().splitlines()
+            function_body = textwrap.dedent('\n'.join(py_source))
 
-        py_source = self.get_python_source().splitlines()
-        function_body = textwrap.dedent('\n'.join(py_source[1:]))
-
-        self.logger.info(function_body)
-
-        return super().execute(context)
-
-        """
-        tmp_dir = None
-
-        try:
-            # Create a temporary directory manually
-            tmp_dir = mkdtemp(prefix="ray")
+            self.logger.info(function_body)
 
             script_filename = os.path.join(tmp_dir, "script.py")
             with open(script_filename, "w") as file:
-                file.write(function_body)
-
-            #self.entrypoint = f'python script.py'
-            #self.runtime_env['working_dir'] = tmp_dir
+                file.write(f"{function_body}\n{self.extract_function_name()}()")
+            
+            self.entrypoint = f'python {script_filename}'
+            self.runtime_env['working_dir'] = tmp_dir
 
             self.logger.info("Running ray job...")
-            result = super().execute(context)
-
-        except Exception as e:
-            self.log.error(f"Failed during execution with error: {e}")
-            raise AirflowException("Job submission failed")
-
-        finally:
-            # Clean up the temporary directory if it was created
-            if tmp_dir and os.path.exists(tmp_dir):
-                shutil.rmtree(tmp_dir)
+            try:
+                result = super().execute(context)
+            except Exception as e:
+                self.log.error(f"Failed during execution with error: {e}")
+                raise AirflowException("Job submission failed")
 
         return result
-"""
+
+    def extract_function_name(self):
+        # Assuming the function name can be extracted from the source
+        return self.get_python_source().split('def ')[1].split('(')[0].strip()
         
 def ray_task(
         python_callable: Callable | None = None,
