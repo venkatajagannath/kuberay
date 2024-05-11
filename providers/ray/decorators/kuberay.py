@@ -53,11 +53,13 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
         try:
             py_source = self.get_python_source().splitlines()
             function_body = textwrap.dedent('\n'.join(py_source))
-            self.logger.info(function_body)
-
+            
             script_filename = os.path.join(tmp_dir, "script.py")
             with open(script_filename, "w") as file:
-                file.write(f"{function_body}\n{self.extract_function_name()}()")
+                script_body = f"{function_body}\n{self.extract_function_name()}()"
+                file.write(script_body)
+
+            self.logger.info(function_body)
 
             self.entrypoint = f'python {script_filename}'
             self.runtime_env['working_dir'] = tmp_dir
