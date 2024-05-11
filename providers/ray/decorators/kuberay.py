@@ -76,10 +76,9 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
 
         return result
 
-
     def extract_function_name(self):
-        # Assuming the function name can be extracted from the source
-        return self.get_python_source().split('def ')[1].split('(')[0].strip()
+        # Directly using __name__ attribute to retrieve the function name
+        return self.python_callable.__name__
         
 def ray_task(
         python_callable: Callable | None = None,
