@@ -258,6 +258,12 @@ class SubmitRayJob(BaseOperator):
 
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.setLevel(logging.INFO)
+    
+    def __del__(self):
+        if self.client:   
+            return self.client.delete_job(self.job_id)
+        else:
+            return
         
     def on_kill(self):
         if self.client:   

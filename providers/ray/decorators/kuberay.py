@@ -26,15 +26,27 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
     }
 
     def __init__(self, config: dict, node_group: str = None, **kwargs) -> None:
-        super().__init__(**kwargs)
+        # Setting default values if not provided in the configuration
+        self.host = config.get('host', os.getenv('RAY_DASHBOARD_URL'))
+        self.entrypoint = config.get('entrypoint', 'python script.py')  # Default entrypoint if not provided
+        self.runtime_env = config.get('runtime_env', {})
+
+        self.num_cpus = config.get('num_cpus')
+        self.num_gpus = config.get('num_gpus')
+        self.memory = config.get('memory')
         self.config = config
         self.node_group = node_group
-        self.host = self.config.get('host', os.getenv('RAY_DASHBOARD_URL'))
-        self.entrypoint = self.config.get('entrypoint')
-        self.runtime_env = self.config.get('runtime_env', {})
-        self.num_cpus = self.config.get('num_cpus')
-        self.num_gpus = self.config.get('num_gpus')
-        self.memory = self.config.get('memory')
+
+        # Ensuring we pass all necessary initialization parameters to the superclass
+        super().__init__(
+            host=self.host,
+            entrypoint=self.entrypoint,
+            runtime_env=self.runtime_env,
+            num_cpus=self.num_cpus,
+            num_gpus=self.num_gpus,
+            memory=self.memory,
+            **kwargs
+        )
 
     def execute(self, context: Context):
         with TemporaryDirectory(prefix="ray") as tmp_dir:
