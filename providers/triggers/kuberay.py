@@ -4,7 +4,7 @@ from typing import Any, AsyncIterator
 from airflow.triggers.base import BaseTrigger, TriggerEvent
 from airflow.exceptions import AirflowException
 from ray.dashboard.modules.job.sdk import JobSubmissionClient, JobStatus
-from providers.ray.utils.kuberay import setup_logging
+from providers.utils.kuberay import setup_logging
 import logging
 import time
 

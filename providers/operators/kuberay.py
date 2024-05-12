@@ -23,8 +23,8 @@ from kubernetes.client.rest import ApiException
 from kubernetes.client.api_client import ApiClient
 from kubernetes.dynamic import DynamicClient
 from logging import Logger
-from providers.ray.triggers.kuberay import RayJobTrigger
-from providers.ray.utils.kuberay import setup_logging
+from providers.triggers.kuberay import RayJobTrigger
+from providers.utils.kuberay import setup_logging
 from ray.job_submission import JobSubmissionClient, JobStatus
 from typing import TYPE_CHECKING, Container, Sequence, cast
 
@@ -32,7 +32,6 @@ from typing import TYPE_CHECKING, Container, Sequence, cast
 logger = setup_logging('kuberay')
 
 class RayClusterOperator(BaseOperator):
-
 
     def __init__(self,*,
                  cluster_name: str,
