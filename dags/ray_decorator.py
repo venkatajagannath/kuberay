@@ -39,20 +39,10 @@ def taskflow_gpu_task():
     def ray_decorator_task():
 
         import ray
-        import os
 
         @ray.remote
         def hello_world():
             return "123 -- hello world"
-        
-        parent_directory = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
-    
-        # List all files and directories in the parent directory
-        files_and_directories = os.listdir(parent_directory)
-        
-        print(f"Contents of {parent_directory}:")
-        for item in files_and_directories:
-            print(item)
 
         ray.init()
         print(ray.get(hello_world.remote()))
