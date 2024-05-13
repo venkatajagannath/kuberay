@@ -37,6 +37,9 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
         self.config = config
         self.node_group = node_group
 
+        # Store additional function arguments passed via kwargs
+        self.function_args = kwargs.pop('function_args', [])
+
         # Ensuring we pass all necessary initialization parameters to the superclass
         super().__init__(
             host=self.host,
@@ -56,12 +59,14 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
             
             script_filename = os.path.join(tmp_dir, "script.py")
             with open(script_filename, "w") as file:
-                script_body = f"{function_body}\n{self.extract_function_name()}()"
+                # Creating a function call string with arguments from function_args
+                args_str = ', '.join(map(str, self.function_args))
+                script_body = f"{function_body}\n{self.extract_function_name()}({args_str})"
                 file.write(script_body)
 
             self.logger.info(script_body)
 
-            self.entrypoint = f'python script.py'
+            self.entrypoint = f'python {script_filename}'
             self.runtime_env['working_dir'] = tmp_dir
             self.logger.info("Running ray job...")
 
@@ -79,6 +84,7 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
     def extract_function_name(self):
         # Directly using __name__ attribute to retrieve the function name
         return self.python_callable.__name__
+
         
 def ray_task(
         python_callable: Callable | None = None,

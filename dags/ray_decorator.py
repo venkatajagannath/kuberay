@@ -36,18 +36,18 @@ RAY_TASK_CONFIG = {'entrypoint': 'python script.py',
 def taskflow_gpu_task():
     
     @ray_task(config = RAY_TASK_CONFIG,node_group=None)
-    def ray_decorator_task():
+    def ray_decorator_task(number):
 
         import ray
 
         @ray.remote
         def hello_world():
-            return "123 -- hello world"
+            return f"{number} -- hello world"
 
         ray.init()
         print(ray.get(hello_world.remote()))
 
     
-    ray_decorator_task()
+    ray_decorator_task(456)
 
 gpu_dag = taskflow_gpu_task()
