@@ -48,6 +48,6 @@ def taskflow_gpu_task():
         print(ray.get(hello_world.remote()))
 
     
-    ray_decorator_task(number=456)
+    ray_decorator_task(number=123)
 
 gpu_dag = taskflow_gpu_task()
