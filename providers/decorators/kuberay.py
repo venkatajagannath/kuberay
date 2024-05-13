@@ -47,8 +47,7 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
             runtime_env=self.runtime_env,
             num_cpus=self.num_cpus,
             num_gpus=self.num_gpus,
-            memory=self.memory,
-            **kwargs
+            memory=self.memory
         )
 
     def execute(self, context: Context):
