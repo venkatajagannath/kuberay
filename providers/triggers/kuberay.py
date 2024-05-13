@@ -26,7 +26,7 @@ class RayJobTrigger(BaseTrigger):
         #print("::group::RayJobTriggerLogs")
 
     def serialize(self) -> tuple[str, dict[str, Any]]:
-        return ("providers.ray.triggers.kuberay.RayJobTrigger", {
+        return ("providers.triggers.kuberay.RayJobTrigger", {
             "job_id": self.job_id,
             "host": self.host,
             "end_time": self.end_time,
