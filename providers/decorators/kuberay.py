@@ -38,7 +38,7 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
         self.node_group = node_group
 
         # Store additional function arguments passed via kwargs
-        self.function_args = kwargs.pop('function_args', [])
+        self.function_args = kwargs
 
         # Ensuring we pass all necessary initialization parameters to the superclass
         super().__init__(
@@ -60,8 +60,8 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
             script_filename = os.path.join(tmp_dir, "script.py")
             with open(script_filename, "w") as file:
                 # Creating a function call string with arguments from function_args
-                args_str = ', '.join(map(str, self.function_args))
-                script_body = f"{function_body}\n{self.extract_function_name()}({args_str})"
+                kwargs_str = ", ".join(f"{k}={repr(v)}" for k, v in self.function_kwargs.items())
+                script_body = f"{function_body}\n{self.extract_function_name()}({kwargs_str})"
                 file.write(script_body)
 
             self.logger.info(script_body)
