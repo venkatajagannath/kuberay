@@ -8,7 +8,7 @@ from tempfile import mkdtemp
 from typing import TYPE_CHECKING, Callable, Sequence
 from tempfile import TemporaryDirectory
 from airflow.utils.types import NOTSET
-from airflow.decorators.base import DecoratedOperator, task_decorator_factory
+from airflow.decorators.base import DecoratedOperator, task_decorator_factory, TaskDecorator
 from airflow.utils.context import Context
 from airflow.exceptions import AirflowException
 from providers.operators.kuberay import SubmitRayJob
