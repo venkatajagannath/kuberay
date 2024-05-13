@@ -38,7 +38,7 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
         self.node_group = node_group
 
         # Store additional function arguments passed via kwargs
-        self.function_args = kwargs
+        self.kwargs = kwargs.copy()
 
         # Ensuring we pass all necessary initialization parameters to the superclass
         super().__init__(
@@ -47,7 +47,8 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
             runtime_env=self.runtime_env,
             num_cpus=self.num_cpus,
             num_gpus=self.num_gpus,
-            memory=self.memory
+            memory=self.memory,
+            **kwargs
         )
 
     def execute(self, context: Context):
@@ -59,7 +60,7 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
             script_filename = os.path.join(tmp_dir, "script.py")
             with open(script_filename, "w") as file:
                 # Creating a function call string with arguments from function_args
-                kwargs_str = ", ".join(f"{k}={repr(v)}" for k, v in self.function_kwargs.items())
+                kwargs_str = ", ".join(f"{k}={repr(v)}" for k, v in self.kwargs.items())
                 script_body = f"{function_body}\n{self.extract_function_name()}({kwargs_str})"
                 file.write(script_body)
 
