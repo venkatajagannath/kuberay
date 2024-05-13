@@ -59,7 +59,7 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
                 script_body = f"{function_body}\n{self.extract_function_name()}()"
                 file.write(script_body)
 
-            self.logger.info(function_body)
+            self.logger.info(script_body)
 
             self.entrypoint = f'python script.py'
             self.runtime_env['working_dir'] = tmp_dir
