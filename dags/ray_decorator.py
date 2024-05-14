@@ -4,7 +4,6 @@ from providers.operators.eks import CreateEKSCluster, DeleteEKSCluster
 from providers.decorators.kuberay import ray_task
 from datetime import datetime, timedelta
 import os
-import ray
 
 CLUSTERNAME = 'RayCluster'
 REGION = 'us-east-2'
@@ -16,22 +15,11 @@ kubeconfig_directory = f"/tmp/airflow_kubeconfigs/{REGION}/{CLUSTERNAME}/"
 os.makedirs(kubeconfig_directory, exist_ok=True)  # Ensure the directory exists
 KUBECONFIG_PATH = os.path.join(kubeconfig_directory, "kubeconfig.yaml")
 
-RAY_TASK_CONFIG = {
-    'entrypoint': 'python script.py',
-    'runtime_env': {"working_dir": '/usr/local/airflow/dags/ray_scripts'},
-    'num_cpus': 1,
-    'num_gpus': 0,
-    'memory': 0
-}
-
-def hello_world_task(number):
-    @ray.remote
-    def hello_world():
-        return f"{number} -- hello world"
-    
-    ray.init()
-    result = ray.get(hello_world.remote())
-    print(result)
+RAY_TASK_CONFIG = {'entrypoint': 'python script.py',
+                   'runtime_env':{"working_dir": '/usr/local/airflow/dags/ray_scripts'},
+                   'num_cpus':1,
+                   'num_gpus':0,
+                   'memory':0}
 
 @dag(
     'ray_decorator',
@@ -44,12 +32,22 @@ def hello_world_task(number):
     schedule_interval=None,
     description='Setup EKS cluster with eksctl and run a gpu task on the ray cluster'
 )
+
 def taskflow_gpu_task():
     
-    @ray_task(config=RAY_TASK_CONFIG, node_group=None)
+    @ray_task(config = RAY_TASK_CONFIG,node_group=None)
     def ray_decorator_task(number):
-        hello_world_task(number)
 
+        import ray
+
+        @ray.remote
+        def hello_world():
+            return f"{number} -- hello world"
+
+        ray.init()
+        print(ray.get(hello_world.remote()))
+
+    
     ray_decorator_task(number=123)
 
 gpu_dag = taskflow_gpu_task()
