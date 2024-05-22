@@ -306,7 +306,9 @@ class RayClusterOperator(BaseOperator):
 
         env = self.get_env(context)
 
-        self.add_kuberay_operator(env)
+        #self.add_kuberay_operator(env)
+
+        install_or_upgrade_helm_chart(self.ray_namespace)
 
         self.create_ray_cluster(env)
 
