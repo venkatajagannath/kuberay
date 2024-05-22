@@ -4,7 +4,7 @@ from typing import Any, AsyncIterator
 from airflow.triggers.base import BaseTrigger, TriggerEvent
 from airflow.exceptions import AirflowException
 from ray.dashboard.modules.job.sdk import JobSubmissionClient, JobStatus
-from providers.utils.kuberay import setup_logging
+from include.providers.utils.kuberay import setup_logging
 import logging
 import time
 
@@ -26,7 +26,7 @@ class RayJobTrigger(BaseTrigger):
         #print("::group::RayJobTriggerLogs")
 
     def serialize(self) -> tuple[str, dict[str, Any]]:
-        return ("providers.triggers.kuberay.RayJobTrigger", {
+        return ("include.providers.triggers.kuberay.RayJobTrigger", {
             "job_id": self.job_id,
             "host": self.host,
             "end_time": self.end_time,

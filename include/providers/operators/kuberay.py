@@ -27,15 +27,13 @@ from kubernetes.client.rest import ApiException
 from kubernetes.client.api_client import ApiClient
 from kubernetes.dynamic import DynamicClient
 from logging import Logger
-from providers.triggers.kuberay import RayJobTrigger
+from include.providers.triggers.kuberay import RayJobTrigger
 from providers.utils.kuberay import setup_logging
 from ray.job_submission import JobSubmissionClient, JobStatus
 from typing import TYPE_CHECKING, Container, Sequence, cast
 
 # Set up logging
 logger = setup_logging('kuberay')
-
-
 
 def install_or_upgrade_helm_chart(ray_namespace: str):
     # Load Kubernetes configuration
