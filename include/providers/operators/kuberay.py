@@ -236,8 +236,8 @@ class RayClusterOperator(BaseOperator):
 
         self.add_kuberay_operator(env)
 
-        self.create_ray_cluster(env)
-        #self.create_ray_cluster_(self.ray_cluster_yaml)
+        #self.create_ray_cluster(env)
+        self.create_ray_cluster_(self.ray_cluster_yaml)
 
         if self.use_gpu:
             self.add_nvidia_device(env)
