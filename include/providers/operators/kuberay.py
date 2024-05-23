@@ -7,6 +7,7 @@ import shutil
 import tempfile
 import time
 import warnings
+import json
 import yaml
 import requests
 
@@ -134,7 +135,7 @@ class RayClusterOperator(BaseOperator):
         self.log.info(result)
         return result
     
-    def create_ray_cluster_(self,yaml_file_path):
+    def create_ray_cluster_(self, yaml_file_path):
         # Load kubeconfig
         config.load_kube_config(self.kubeconfig)
 
@@ -146,9 +147,9 @@ class RayClusterOperator(BaseOperator):
             ray_cluster_yaml = yaml.safe_load(f)
 
         # Extract necessary fields from the YAML
-        group = ray_cluster_yaml.get('apiVersion').split('/')[0]  # e.g., 'ray.io'
-        version = ray_cluster_yaml.get('apiVersion').split('/')[1]  # e.g., 'v1alpha1'
-        namespace = ray_cluster_yaml.get('metadata').get('namespace', 'default')  # default to 'default' if not specified
+        api_version = ray_cluster_yaml.get('apiVersion')
+        group, version = api_version.split('/')  # e.g., 'ray.io', 'v1alpha1'
+        namespace = ray_cluster_yaml.get('metadata', {}).get('namespace', 'default')  # default to 'default' if not specified
         plural = 'rayclusters'  # This is typically known and constant
 
         body = ray_cluster_yaml  # dict | the JSON schema of the Resource to create
@@ -156,7 +157,9 @@ class RayClusterOperator(BaseOperator):
         try:
             api_response = api_instance.create_namespaced_custom_object(
                 group, version, namespace, plural, body)
-            print("RayCluster created. status='%s'" % str(api_response))
+            # Print the API response in a readable JSON format
+            print("RayCluster created. Response:")
+            print(json.dumps(api_response, indent=2))
         except ApiException as e:
             print("Exception when creating RayCluster: %s\n" % e)
     
