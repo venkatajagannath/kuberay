@@ -32,67 +32,6 @@ from typing import TYPE_CHECKING, Container, Sequence, cast
 logger = setup_logging('kuberay')
 
 
-def apply_crd(yaml_file: str):
-    # Load kube config
-    config.load_kube_config()
-
-    # Load the YAML file
-    with open(yaml_file, 'r') as f:
-        crd = yaml.safe_load(f)
-
-    # Determine the kind and API version of the CRD
-    kind = crd.get('kind')
-    api_version = crd.get('apiVersion')
-
-    # Split API version to group and version
-    group, _, version = api_version.partition('/')
-
-    # Get the plural and namespaced properties
-    plural = crd['metadata']['name'].split('.')[0]
-    namespaced = crd.get('spec', {}).get('scope', '') == 'Namespaced'
-
-    # Create an API instance
-    if group:
-        api_instance = client.CustomObjectsApi()
-    else:
-        api_instance = client.ApiClient()
-
-    # Define the namespace
-    namespace = crd['metadata'].get('namespace', 'default')
-
-    try:
-        # Check if the CRD already exists
-        existing_crd = api_instance.get_namespaced_custom_object(
-            group=group,
-            version=version,
-            namespace=namespace,
-            plural=plural,
-            name=crd['metadata']['name']
-        )
-        # If it exists, update it
-        api_instance.replace_namespaced_custom_object(
-            group=group,
-            version=version,
-            namespace=namespace,
-            plural=plural,
-            name=crd['metadata']['name'],
-            body=crd
-        )
-        print(f"Updated existing {kind} '{crd['metadata']['name']}'")
-    except ApiException as e:
-        if e.status == 404:
-            # If it doesn't exist, create it
-            api_instance.create_namespaced_custom_object(
-                group=group,
-                version=version,
-                namespace=namespace,
-                plural=plural,
-                body=crd
-            )
-            print(f"Created {kind} '{crd['metadata']['name']}'")
-        else:
-            raise e
-
 class RayClusterOperator(BaseOperator):
 
     def __init__(self,*,
@@ -195,6 +134,32 @@ class RayClusterOperator(BaseOperator):
         self.log.info(result)
         return result
     
+    def create_ray_cluster_(self,yaml_file_path):
+        # Load kubeconfig
+        config.load_kube_config(self.kubeconfig)
+
+        # Create API client
+        api_instance = client.CustomObjectsApi()
+
+        # Load RayCluster YAML
+        with open(yaml_file_path, "r") as f:
+            ray_cluster_yaml = yaml.safe_load(f)
+
+        # Extract necessary fields from the YAML
+        group = ray_cluster_yaml.get('apiVersion').split('/')[0]  # e.g., 'ray.io'
+        version = ray_cluster_yaml.get('apiVersion').split('/')[1]  # e.g., 'v1alpha1'
+        namespace = ray_cluster_yaml.get('metadata').get('namespace', 'default')  # default to 'default' if not specified
+        plural = 'rayclusters'  # This is typically known and constant
+
+        body = ray_cluster_yaml  # dict | the JSON schema of the Resource to create
+
+        try:
+            api_response = api_instance.create_namespaced_custom_object(
+                group, version, namespace, plural, body)
+            print("RayCluster created. status='%s'" % str(api_response))
+        except ApiException as e:
+            print("Exception when creating RayCluster: %s\n" % e)
+    
     def create_ray_cluster(self, env: dict):
 
         command = f"kubectl apply -f {self.ray_cluster_yaml} -n {self.ray_namespace}"
@@ -271,7 +236,7 @@ class RayClusterOperator(BaseOperator):
 
         self.add_kuberay_operator(env)
 
-        self.create_ray_cluster(env)
+        self.create_ray_cluster_(self.ray_cluster_yaml)
 
         if self.use_gpu:
             self.add_nvidia_device(env)
