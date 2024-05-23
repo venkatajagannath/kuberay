@@ -10,10 +10,6 @@ import warnings
 import yaml
 import requests
 
-from pyhelm.repo import Repo
-from pyhelm.chart import ChartBuilder
-from pyhelm.tiller import Tiller
-
 from airflow.exceptions import AirflowException
 from airflow.hooks.subprocess import SubprocessHook
 from airflow.models import BaseOperator, BaseOperatorLink, XCom
@@ -34,37 +30,6 @@ from typing import TYPE_CHECKING, Container, Sequence, cast
 
 # Set up logging
 logger = setup_logging('kuberay')
-
-def install_or_upgrade_helm_chart(ray_namespace: str):
-    # Load Kubernetes configuration
-    config.load_kube_config()
-
-    # Initialize Tiller
-    tiller = Tiller()
-
-    # Add Helm repository
-    repo_url = "https://ray-project.github.io/kuberay-helm/"
-    repo_name = "kuberay"
-    Repo.add_repo(repo_name, repo_url)
-    Repo.update()
-
-    # Define the chart details
-    chart_name = "kuberay-operator"
-    chart_version = "1.0.0"
-
-    # Build the chart
-    chart = ChartBuilder({
-        "name": chart_name,
-        "source": {
-            "type": "repo",
-            "location": f"{repo_name}/{chart_name}",
-            "version": chart_version
-        }
-    })
-
-    # Install or upgrade the chart
-    tiller.install_release(chart.get_helm_chart(), ray_namespace, dry_run=False)
-    print(f"Installed or upgraded chart {chart_name} in namespace {ray_namespace}")
 
 
 def apply_crd(yaml_file: str):
@@ -304,9 +269,7 @@ class RayClusterOperator(BaseOperator):
 
         env = self.get_env(context)
 
-        #self.add_kuberay_operator(env)
-
-        install_or_upgrade_helm_chart(self.ray_namespace)
+        self.add_kuberay_operator(env)
 
         self.create_ray_cluster(env)
 

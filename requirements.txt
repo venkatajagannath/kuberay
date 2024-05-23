@@ -4,4 +4,3 @@ awscli
 ray[default]
 concurrent_log_handler
 requests
-pyhelm
