@@ -24,7 +24,7 @@ from kubernetes.client.api_client import ApiClient
 from kubernetes.dynamic import DynamicClient
 from logging import Logger
 from include.providers.triggers.kuberay import RayJobTrigger
-from providers.utils.kuberay import setup_logging
+from include.providers.utils.kuberay import setup_logging
 from ray.job_submission import JobSubmissionClient, JobStatus
 from typing import TYPE_CHECKING, Container, Sequence, cast
 
