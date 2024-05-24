@@ -135,7 +135,66 @@ class RayClusterOperator(BaseOperator):
         self.log.info(result)
         return result
     
-    def create_ray_cluster_(self, yaml_file_path):
+    def create_resource(self, yaml_file_path):
+        # Load kubeconfig
+        config.load_kube_config(self.kubeconfig)
+
+        # Load YAML file
+        if yaml_file_path.startswith("http"):
+            # If the path is a URL, fetch the content
+            response = requests.get(yaml_file_path)
+            response.raise_for_status()
+            yaml_content = response.text
+        else:
+            # If the path is a local file, read the file
+            with open(yaml_file_path, "r") as f:
+                yaml_content = f.read()
+
+        # Parse YAML
+        resource_yaml = yaml.safe_load(yaml_content)
+
+        # Extract necessary fields from the YAML
+        kind = resource_yaml.get('kind')
+        api_version = resource_yaml.get('apiVersion')
+        namespace = resource_yaml.get('metadata', {}).get('namespace', self.ray_namespace)  # default to 'default' if not specified
+
+        if '/' in api_version:
+            group, version = api_version.split('/')
+        else:
+            group = ""
+            version = api_version
+
+        body = resource_yaml  # dict | the JSON schema of the Resource to create
+
+        try:
+            if kind == 'DaemonSet':
+                # Create API client for DaemonSet
+                api_instance = client.AppsV1Api()
+                api_response = api_instance.create_namespaced_daemon_set(
+                    namespace=namespace,
+                    body=body
+                )
+                print(f"{kind} created. Response:")
+                print(json.dumps(api_response.to_dict(), indent=2))
+            else:
+                # Create API client for custom objects
+                api_instance = client.CustomObjectsApi()
+                plural = kind.lower() + 's'  # Simple heuristic for plural, can be improved
+                api_response = api_instance.create_namespaced_custom_object(
+                    group=group,
+                    version=version,
+                    namespace=namespace,
+                    plural=plural,
+                    body=body
+                )
+                print(f"{kind} created. Response:")
+                print(json.dumps(api_response, indent=2))
+        except ApiException as e:
+            print(f"Exception when creating {kind}: {e}\n")
+        except ValueError as e:
+            print(e)
+
+    """def create_ray_cluster_(self, yaml_file_path):
         # Load kubeconfig
         config.load_kube_config(self.kubeconfig)
 
@@ -177,7 +236,7 @@ class RayClusterOperator(BaseOperator):
 
         result = self.execute_bash_command(command,env)
         self.log.info(result)
-        return result
+        return result"""
     
     def create_k8_service(self, namespace: str ="default", yaml_file: str ="ray-head-service.yaml"):
 
@@ -240,10 +299,12 @@ class RayClusterOperator(BaseOperator):
         self.add_kuberay_operator(env)
 
         #self.create_ray_cluster(env)
-        self.create_ray_cluster_(self.ray_cluster_yaml)
+        self.create_resource(self.ray_cluster_yaml)
 
         if self.use_gpu:
-            self.add_nvidia_device(env)
+            #self.add_nvidia_device(env)
+            nvidia_yaml = "https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.9.0/nvidia-device-plugin.yml"
+            self.create_resource(nvidia_yaml)
 
         if self.ray_svc_yaml:
             # Creating K8 services
