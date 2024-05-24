@@ -149,7 +149,7 @@ class RayClusterOperator(BaseOperator):
         # Extract necessary fields from the YAML
         api_version = ray_cluster_yaml.get('apiVersion')
         group, version = api_version.split('/')  # e.g., 'ray.io', 'v1alpha1'
-        namespace = ray_cluster_yaml.get('metadata', {}).get('namespace', 'default')  # default to 'default' if not specified
+        namespace = ray_cluster_yaml.get('metadata', {}).get('namespace', self.ray_namespace)  # default to 'default' if not specified
         plural = 'rayclusters'  # This is typically known and constant
 
         body = ray_cluster_yaml  # dict | the JSON schema of the Resource to create
