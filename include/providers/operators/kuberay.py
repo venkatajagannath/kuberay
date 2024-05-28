@@ -23,15 +23,9 @@ from kubernetes import client, config, utils
 from kubernetes.client.rest import ApiException
 from kubernetes.client.api_client import ApiClient
 from kubernetes.dynamic import DynamicClient
-from logging import Logger
 from include.providers.triggers.kuberay import RayJobTrigger
-from include.providers.utils.kuberay import setup_logging
 from ray.job_submission import JobSubmissionClient, JobStatus
 from typing import TYPE_CHECKING, Container, Sequence, cast
-
-# Set up logging
-logger = setup_logging('kuberay')
-
 
 class RayClusterOperator(BaseOperator):
 
@@ -249,7 +243,7 @@ class RayClusterOperator(BaseOperator):
 
         v1 = client.CoreV1Api()
         created_service = v1.create_namespaced_service(namespace=namespace, body=service_data)
-        logger.info(f"Service {created_service.metadata.name} created. Waiting for an external DNS name...")
+        self.log.info(f"Service {created_service.metadata.name} created. Waiting for an external DNS name...")
 
         max_retries = 30
         retry_interval = 40
@@ -257,38 +251,38 @@ class RayClusterOperator(BaseOperator):
         external_dns = None
 
         for attempt in range(max_retries):
-            logger.info(f"Attempt {attempt + 1}: Checking for service's external DNS name...")
+            self.log.info(f"Attempt {attempt + 1}: Checking for service's external DNS name...")
             service = v1.read_namespaced_service(name=created_service.metadata.name, namespace=namespace)
             
             if service.status.load_balancer.ingress and service.status.load_balancer.ingress[0].hostname:
                 external_dns = service.status.load_balancer.ingress[0].hostname
-                logger.info(f"External DNS name found: {external_dns}")
+                self.log.info(f"External DNS name found: {external_dns}")
                 break
             else:
-                logger.info("External DNS name not yet available, waiting...")
+                self.log.info("External DNS name not yet available, waiting...")
                 time.sleep(retry_interval)
 
         if not external_dns:
-            logger.error("Failed to find the external DNS name for the created service within the expected time.")
+            self.log.error("Failed to find the external DNS name for the created service within the expected time.")
             return None
         
         # Wait for the endpoints to be ready
         for attempt in range(max_retries):
             endpoints = v1.read_namespaced_endpoints(name=created_service.metadata.name, namespace=namespace)
             if endpoints.subsets and all([subset.addresses for subset in endpoints.subsets]):
-                logger.info("All associated pods are ready.")
+                self.log.info("All associated pods are ready.")
                 break
             else:
-                logger.info(f"Pods not ready, waiting... (Attempt {attempt + 1})")
+                self.log.info(f"Pods not ready, waiting... (Attempt {attempt + 1})")
                 time.sleep(retry_interval)
         else:
-            logger.error("Pods failed to become ready within the expected time.")
+            self.log.error("Pods failed to become ready within the expected time.")
             raise AirflowException("Pods failed to become ready within the expected time.")
 
         # Assuming all ports in the service need to be accessed
         urls = {port.name: f"http://{external_dns}:{port.port}" for port in service.spec.ports}
         for port_name, url in urls.items():
-            logger.info(f"Service URL for {port_name}: {url}")
+            self.log.info(f"Service URL for {port_name}: {url}")
 
         return urls
     
@@ -346,9 +340,6 @@ class SubmitRayJob(BaseOperator):
         self.client = None
         self.job_id = None
         self.status_to_wait_for = {JobStatus.SUCCEEDED, JobStatus.STOPPED, JobStatus.FAILED}
-
-        self.logger = logging.getLogger(self.__class__.__name__)
-        self.logger.setLevel(logging.INFO)
     
     def __del__(self):
         if self.client:   
@@ -364,7 +355,7 @@ class SubmitRayJob(BaseOperator):
     def execute(self,context : Context):
 
         if not self.client:
-            self.logger.info(f"URL is: {self.host}")
+            self.log.info(f"URL is: {self.host}")
             self.client = JobSubmissionClient(f"{self.host}")
 
         self.job_id = self.client.submit_job(
@@ -375,11 +366,11 @@ class SubmitRayJob(BaseOperator):
             entrypoint_memory = self.memory,
             entrypoint_resources = self.resources)  
         
-        self.logger.info(f"Ray job submitted with id:{self.job_id}")
+        self.log.info(f"Ray job submitted with id:{self.job_id}")
 
         current_status = self.get_current_status()
         if current_status in (JobStatus.RUNNING, JobStatus.PENDING):
-            self.logger.info("Deferring the polling to RayJobTrigger...")
+            self.log.info("Deferring the polling to RayJobTrigger...")
             self.defer(
                 timeout= timedelta(hours=1),
                 trigger= RayJobTrigger(
@@ -390,7 +381,7 @@ class SubmitRayJob(BaseOperator):
                 ),
                 method_name="execute_complete",)
         elif current_status == JobStatus.SUCCEEDED:
-            self.logger.info("Job %s completed successfully", self.job_id)
+            self.log.info("Job %s completed successfully", self.job_id)
             return
         elif current_status == JobStatus.FAILED:
             raise AirflowException(f"Job failed:\n{self.job_id}")
@@ -404,14 +395,14 @@ class SubmitRayJob(BaseOperator):
     def get_current_status(self):
         
         job_status = self.client.get_job_status(self.job_id)
-        self.logger.info(f"Current job status for {self.job_id} is: {job_status}")
+        self.log.info(f"Current job status for {self.job_id} is: {job_status}")
         return job_status
     
     def execute_complete(self, context: Context, event: Any = None) -> None:
 
         if event["status"] == "error" or event["status"] == "cancelled":
-            self.logger.info(f"Ray job {self.job_id} execution not completed...")
+            self.log.info(f"Ray job {self.job_id} execution not completed...")
             raise AirflowException(event["message"])
         elif event["status"] == "success":
-            self.logger.info(f"Ray job {self.job_id} execution succeeded ...")
+            self.log.info(f"Ray job {self.job_id} execution succeeded ...")
             return None

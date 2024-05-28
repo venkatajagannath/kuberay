@@ -4,12 +4,7 @@ from typing import Any, AsyncIterator
 from airflow.triggers.base import BaseTrigger, TriggerEvent
 from airflow.exceptions import AirflowException
 from ray.dashboard.modules.job.sdk import JobSubmissionClient, JobStatus
-from include.providers.utils.kuberay import setup_logging
-import logging
 import time
-
-# Set up logging
-logger = setup_logging('kuberay')
 
 class RayJobTrigger(BaseTrigger):
     def __init__(self,
@@ -38,7 +33,7 @@ class RayJobTrigger(BaseTrigger):
             yield TriggerEvent({"status": "error", "message": "No job_id provided to async trigger", "job_id": self.job_id})
 
         try:
-            logger.info(f"Polling for job {self.job_id} every {self.poll_interval} seconds...")
+            self.log.info(f"Polling for job {self.job_id} every {self.poll_interval} seconds...")
             client = JobSubmissionClient(f"{self.host}")
 
             while self.get_current_status(client=client):
@@ -55,13 +50,13 @@ class RayJobTrigger(BaseTrigger):
                 
                 # Stream logs if available
                 async for multi_line in client.tail_job_logs(self.job_id):
-                    logger.info(multi_line)
+                    self.log.info(multi_line)
 
                 await asyncio.sleep(self.poll_interval)
-            logger.info(f"Job {self.job_id} completed execution before the timeout period...")
+            self.log.info(f"Job {self.job_id} completed execution before the timeout period...")
             
             completed_status = client.get_job_status(self.job_id)
-            logger.info(f"Status of completed job {self.job_id} is: {completed_status}")
+            self.log.info(f"Status of completed job {self.job_id} is: {completed_status}")
             if completed_status == JobStatus.SUCCEEDED:
                 yield TriggerEvent(
                     {
@@ -92,7 +87,7 @@ class RayJobTrigger(BaseTrigger):
     def get_current_status(self, client: JobSubmissionClient) -> bool:
 
         job_status = client.get_job_status(self.job_id)
-        logger.info(f"Current job status for {self.job_id} is: {job_status}")
+        self.log.info(f"Current job status for {self.job_id} is: {job_status}")
         if job_status in (JobStatus.RUNNING,JobStatus.PENDING):
             return True
         else:
