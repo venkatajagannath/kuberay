@@ -262,7 +262,7 @@ class RayClusterOperator(BaseOperator):
 
         result = self.execute_bash_command(command,env)
         self.log.info(result)
-        return result"""
+        return result
     
     def create_k8_service(self, namespace: str ="default", yaml_file: str ="ray-head-service.yaml"):
 
@@ -316,7 +316,73 @@ class RayClusterOperator(BaseOperator):
         for port_name, url in urls.items():
             self.log.info(f"Service URL for {port_name}: {url}")
 
+        return urls"""
+    
+    def create_k8_service(self, namespace: str = "default", yaml_file: str = "ray-head-service.yaml"):
+        self.log.info("Creating service with yaml file: " + yaml_file)
+        config.load_kube_config(self.kubeconfig)
+
+        with open(yaml_file) as f:
+            service_data = yaml.safe_load(f)
+
+        v1 = client.CoreV1Api()
+        service_name = service_data['metadata']['name']
+
+        existing_service = self.check_service_exists(v1, service_name, namespace)
+        if existing_service:
+            self.log.info(f"Service '{service_name}' already exists in namespace '{namespace}'. Retrieving existing external DNS name...")
+        else:
+            existing_service = v1.create_namespaced_service(namespace=namespace, body=service_data)
+            self.log.info(f"Service {existing_service.metadata.name} created. Waiting for an external DNS name...")
+
+        external_dns = self.wait_for_external_dns(v1, existing_service.metadata.name, namespace)
+        if not external_dns:
+            self.log.error("Failed to find the external DNS name for the service within the expected time.")
+            return None
+
+        if not self.wait_for_endpoints(v1, existing_service.metadata.name, namespace):
+            self.log.error("Pods failed to become ready within the expected time.")
+            raise AirflowException("Pods failed to become ready within the expected time.")
+
+        urls = self.construct_service_urls(existing_service, external_dns)
+        for port_name, url in urls.items():
+            self.log.info(f"Service URL for {port_name}: {url}")
+
         return urls
+
+    def check_service_exists(self, v1, name, namespace):
+        try:
+            return v1.read_namespaced_service(name=name, namespace=namespace)
+        except client.exceptions.ApiException as e:
+            if e.status == 404:
+                return None
+            self.log.error(f"Exception when checking if service '{name}' exists: {e}")
+            return None
+
+    def wait_for_external_dns(self, v1, service_name, namespace, max_retries=30, retry_interval=40):
+        for attempt in range(max_retries):
+            self.log.info(f"Attempt {attempt + 1}: Checking for service's external DNS name...")
+            service = v1.read_namespaced_service(name=service_name, namespace=namespace)
+            if service.status.load_balancer.ingress and service.status.load_balancer.ingress[0].hostname:
+                external_dns = service.status.load_balancer.ingress[0].hostname
+                self.log.info(f"External DNS name found: {external_dns}")
+                return external_dns
+            self.log.info("External DNS name not yet available, waiting...")
+            time.sleep(retry_interval)
+        return None
+
+    def wait_for_endpoints(self, v1, service_name, namespace, max_retries=30, retry_interval=40):
+        for attempt in range(max_retries):
+            endpoints = v1.read_namespaced_endpoints(name=service_name, namespace=namespace)
+            if endpoints.subsets and all([subset.addresses for subset in endpoints.subsets]):
+                self.log.info("All associated pods are ready.")
+                return True
+            self.log.info(f"Pods not ready, waiting... (Attempt {attempt + 1})")
+            time.sleep(retry_interval)
+        return False
+
+    def construct_service_urls(self, service, external_dns):
+        return {port.name: f"http://{external_dns}:{port.port}" for port in service.spec.ports}
     
     def execute(self, context: Context):
 
