@@ -57,8 +57,17 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
             script_filename = os.path.join(tmp_dir, "script.py")
             with open(script_filename, "w") as file:
                 # Creating a function call string with arguments from function_args
+                args_str = ", ".join(repr(arg) for arg in self.op_args)
                 kwargs_str = ", ".join(f"{k}={repr(v)}" for k, v in self.op_kwargs.items())
-                script_body = f"{function_body}\n{self.extract_function_name()}({kwargs_str})"
+                # Combine args_str and kwargs_str
+                if args_str and kwargs_str:
+                    all_args_str = f"{args_str}, {kwargs_str}"
+                elif args_str:
+                    all_args_str = args_str
+                else:
+                    all_args_str = kwargs_str
+                
+                script_body = f"{function_body}\n{self.extract_function_name()}({all_args_str})"
                 file.write(script_body)
 
             self.logger.info(script_body)
