@@ -150,7 +150,9 @@ class RayClusterOperator(BaseOperator):
         # Extract necessary fields from the YAML
         kind = resource_yaml.get('kind')
         api_version = resource_yaml.get('apiVersion')
-        namespace = resource_yaml.get('metadata', {}).get('namespace', self.ray_namespace)  # default to 'default' if not specified
+        metadata = resource_yaml.get('metadata', {})
+        name = metadata.get('name')
+        namespace = metadata.get('namespace', self.ray_namespace)  # default to 'default' if not specified
 
         if '/' in api_version:
             group, version = api_version.split('/')
@@ -161,9 +163,41 @@ class RayClusterOperator(BaseOperator):
         body = resource_yaml  # dict | the JSON schema of the Resource to create
 
         try:
+            api_instance = None
+            existing_resource = None
+
             if kind == 'DaemonSet':
                 # Create API client for DaemonSet
                 api_instance = client.AppsV1Api()
+                existing_resource = api_instance.read_namespaced_daemon_set(name, namespace)
+            else:
+                # Create API client for custom objects
+                api_instance = client.CustomObjectsApi()
+                plural = kind.lower() + 's'  # Simple heuristic for plural, can be improved
+                existing_resource = api_instance.get_namespaced_custom_object(
+                    group=group,
+                    version=version,
+                    namespace=namespace,
+                    plural=plural,
+                    name=name
+                )
+
+            if existing_resource:
+                print(f"{kind} '{name}' already exists in namespace '{namespace}'. Skipping creation.")
+                return
+
+        except client.exceptions.ApiException as e:
+            if e.status != 404:
+                print(f"Exception when checking if {kind} '{name}' exists: {e}")
+                return
+            # If the resource does not exist (404), proceed to create it
+        except ValueError as e:
+            print(e)
+            return
+
+        try:
+            if kind == 'DaemonSet':
+                # Create DaemonSet
                 api_response = api_instance.create_namespaced_daemon_set(
                     namespace=namespace,
                     body=body
@@ -171,9 +205,7 @@ class RayClusterOperator(BaseOperator):
                 print(f"{kind} created. Response:")
                 print(json.dumps(api_response.to_dict(), indent=2))
             else:
-                # Create API client for custom objects
-                api_instance = client.CustomObjectsApi()
-                plural = kind.lower() + 's'  # Simple heuristic for plural, can be improved
+                # Create custom object
                 api_response = api_instance.create_namespaced_custom_object(
                     group=group,
                     version=version,
@@ -183,7 +215,7 @@ class RayClusterOperator(BaseOperator):
                 )
                 print(f"{kind} created. Response:")
                 print(json.dumps(api_response, indent=2))
-        except ApiException as e:
+        except client.exceptions.ApiException as e:
             print(f"Exception when creating {kind}: {e}\n")
         except ValueError as e:
             print(e)
@@ -292,11 +324,9 @@ class RayClusterOperator(BaseOperator):
 
         self.add_kuberay_operator(env)
 
-        #self.create_ray_cluster(env)
         self.create_resource(self.ray_cluster_yaml)
 
         if self.use_gpu:
-            #self.add_nvidia_device(env)
             nvidia_yaml = "https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.9.0/nvidia-device-plugin.yml"
             self.create_resource(nvidia_yaml)
 
