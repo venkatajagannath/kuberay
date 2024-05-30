@@ -70,11 +70,11 @@ class _RayDecoratedOperator(DecoratedOperator, SubmitRayJob):
                 script_body = f"{function_body}\n{self.extract_function_name()}({all_args_str})"
                 file.write(script_body)
 
-            self.logger.info(script_body)
+            self.log.info(script_body)
 
             self.entrypoint = f'python script.py'
             self.runtime_env['working_dir'] = tmp_dir
-            self.logger.info("Running ray job...")
+            self.log.info("Running ray job...")
 
             result = super().execute(context)  # Execute the job
         except Exception as e:
