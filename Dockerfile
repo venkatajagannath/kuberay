@@ -9,9 +9,9 @@ RUN curl --silent --location "https://github.com/weaveworks/eksctl/releases/late
     mv /tmp/eksctl /usr/local/bin
 
 # Install Helm
-RUN curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 -o get_helm.sh && \
-    chmod 700 get_helm.sh && \
-    ./get_helm.sh
+#RUN curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 -o get_helm.sh && \
+#    chmod 700 get_helm.sh && \
+#    ./get_helm.sh
 
 
 
