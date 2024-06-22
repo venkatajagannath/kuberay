@@ -28,8 +28,7 @@ dag = DAG(
 setup_cluster = SetupRayCluster(task_id="SetupRayCluster",
                                  ray_cluster_yaml=RAY_SPEC,
                                  ray_svc_yaml= RAY_SVC,
-                                 ray_gpu=False,
-                                 env = {},
+                                 use_gpu=False,
                                  dag = dag,)
 
 submit_ray_job = SubmitRayJob(task_id="SubmitRayJob",
