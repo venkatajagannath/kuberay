@@ -39,7 +39,7 @@ dag = DAG(
     'start_ray_cluster',
     default_args=default_args,
     description='Setup EKS cluster with eksctl and deploy KubeRay operator',
-    schedule_interval='@daily',
+    schedule_interval=None,
 )
 
 create_eks_cluster = CreateEKSCluster(task_id="CreateEKSCluster",
@@ -50,7 +50,7 @@ create_eks_cluster = CreateEKSCluster(task_id="CreateEKSCluster",
                                       env= {},
                                       dag = dag,)
 
-ray_cluster = RayClusterOperator(task_id="RayClusterOperator",
+"""ray_cluster = RayClusterOperator(task_id="RayClusterOperator",
                                  cluster_name=CLUSTERNAME,
                                  region=REGION,
                                  ray_namespace="ray",
@@ -70,12 +70,14 @@ submit_ray_job = SubmitRayJob(task_id="SubmitRayJob",
                               resources={},
                               dag = dag,)
 
-"""delete_eks_cluster = DeleteEKSCluster(task_id="DeleteEKSCluster",
+delete_eks_cluster = DeleteEKSCluster(task_id="DeleteEKSCluster",
                                       cluster_name=CLUSTERNAME,
                                       region=REGION,
                                       env = {},
                                       dag = dag,)"""
 
-create_eks_cluster >> ray_cluster >> submit_ray_job
+
+create_eks_cluster
+#create_eks_cluster >> ray_cluster >> submit_ray_job
 #create_eks_cluster.as_setup() >> ray_cluster >> submit_ray_job >> delete_eks_cluster.as_teardown()
 #create_eks_cluster >> delete_eks_cluster
