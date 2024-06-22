@@ -26,6 +26,7 @@ dag = DAG(
 )
 
 setup_cluster = SetupRayCluster(task_id="SetupRayCluster",
+                                conn_id = "ray_conn",
                                  ray_cluster_yaml=RAY_SPEC,
                                  ray_svc_yaml= RAY_SVC,
                                  use_gpu=False,
