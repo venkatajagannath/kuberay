@@ -1,5 +1,5 @@
 from airflow.decorators import dag, task
-from ray_provider.decorators.kuberay import ray_task
+from ray_provider.decorators.ray import ray_task
 from datetime import datetime, timedelta
 import os
 

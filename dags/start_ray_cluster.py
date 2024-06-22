@@ -1,6 +1,6 @@
 
 from airflow import DAG
-from ray_provider.operators.kuberay import RayClusterOperator,SubmitRayJob
+from ray_provider.operators.ray import SetupRayCluster,SubmitRayJob
 from include.providers.operators.eks import CreateEKSCluster,DeleteEKSCluster
 from datetime import datetime, timedelta
 import os

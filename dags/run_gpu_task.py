@@ -1,6 +1,6 @@
 
 from airflow import DAG
-from ray_provider.operators.kuberay import RayClusterOperator,SubmitRayJob
+#from ray_provider.operators.ray import RayClusterOperator,SubmitRayJob
 from include.providers.operators.eks import CreateEKSCluster,DeleteEKSCluster
 from datetime import datetime, timedelta
 import os
@@ -51,7 +51,7 @@ create_eks_cluster = CreateEKSCluster(task_id="CreateEKSCluster",
                                       env= {},
                                       dag = dag,)
 
-ray_cluster = RayClusterOperator(task_id="RayClusterOperator",
+"""ray_cluster = RayClusterOperator(task_id="RayClusterOperator",
                                  cluster_name=CLUSTERNAME,
                                  region=REGION,
                                  ray_namespace="ray",
@@ -70,7 +70,7 @@ submit_ray_job = SubmitRayJob(task_id="SubmitRayJob",
                               num_gpus=1,
                               memory=0,
                               resources={},
-                              dag = dag,)
+                              dag = dag,)"""
 
 delete_eks_cluster = DeleteEKSCluster(task_id="DeleteEKSCluster",
                                       cluster_name=CLUSTERNAME,
@@ -78,6 +78,6 @@ delete_eks_cluster = DeleteEKSCluster(task_id="DeleteEKSCluster",
                                       env = {},
                                       dag = dag,)
 
-#create_eks_cluster >> ray_cluster >> submit_ray_job
-create_eks_cluster.as_setup() >> ray_cluster >> submit_ray_job >> delete_eks_cluster.as_teardown()
-create_eks_cluster >> delete_eks_cluster
+create_eks_cluster
+"""create_eks_cluster.as_setup() >> ray_cluster >> submit_ray_job >> delete_eks_cluster.as_teardown()
+create_eks_cluster >> delete_eks_cluster"""
