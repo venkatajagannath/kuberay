@@ -19,9 +19,9 @@ RAY_SVC = '/usr/local/airflow/dags/scripts/ray-service.yaml'
 RAY_RUNTIME_ENV = {"working_dir": '/usr/local/airflow/dags/ray_scripts'}
 
 dag = DAG(
-    'start_ray_cluster',
+    'Setup_Teardown',
     default_args=default_args,
-    description='Setup EKS cluster with eksctl and deploy KubeRay operator',
+    description='Setup Ray cluster and submit a job',
     schedule_interval=None,
 )
 
