@@ -25,8 +25,5 @@ RUN curl -LO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubec
     chmod +x kubectl && \
     mv kubectl /usr/local/bin
 
-# Verify installation
-RUN kubectl version --client
-
 # Switch back to non-root user
 USER astro
