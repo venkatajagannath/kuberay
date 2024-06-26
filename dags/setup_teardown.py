@@ -42,14 +42,15 @@ submit_ray_job = SubmitRayJob(task_id="SubmitRayJob",
                               resources={},
                               dag = dag,)
 
-delete_cluster = DeleteRayCluster(task_id="DeleteRayCluster",
+"""delete_cluster = DeleteRayCluster(task_id="DeleteRayCluster",
                                   conn_id = "ray_conn",
                                  ray_cluster_yaml=RAY_SPEC,
                                  ray_svc_yaml= RAY_SVC,
                                  use_gpu=False,
-                                 dag = dag,)
+                                 dag = dag,)"""
 
+setup_cluster >> submit_ray_job
 # Create ray cluster and submit ray job 
-setup_cluster.as_setup() >> submit_ray_job >> delete_cluster.as_teardown()
-setup_cluster >> delete_cluster
+#setup_cluster.as_setup() >> submit_ray_job >> delete_cluster.as_teardown()
+#setup_cluster >> delete_cluster
 
