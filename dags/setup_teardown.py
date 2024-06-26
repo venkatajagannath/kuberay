@@ -33,13 +33,13 @@ setup_cluster = SetupRayCluster(task_id="SetupRayCluster",
                                  dag = dag,)
 
 submit_ray_job = SubmitRayJob(task_id="SubmitRayJob",
-                              host = "{{ task_instance.xcom_pull(task_ids='SetupRayCluster', key='dashboard') }}",
                               entrypoint='python script.py',
                               runtime_env= RAY_RUNTIME_ENV,
                               num_cpus=1,
                               num_gpus=0,
                               memory=0,
                               resources={},
+                              xcom_task_key = "SetupRayCluster.dashboard",
                               dag = dag,)
 
 """delete_cluster = DeleteRayCluster(task_id="DeleteRayCluster",
