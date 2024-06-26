@@ -33,6 +33,7 @@ setup_cluster = SetupRayCluster(task_id="SetupRayCluster",
                                  dag = dag,)
 
 submit_ray_job = SubmitRayJob(task_id="SubmitRayJob",
+                              conn_id="ray_conn",
                               entrypoint='python script.py',
                               runtime_env= RAY_RUNTIME_ENV,
                               num_cpus=1,
