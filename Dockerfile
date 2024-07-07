@@ -1,7 +1,7 @@
 FROM quay.io/astronomer/astro-runtime:11.6.0
 
 # Install astro_provider_ray
-RUN pip install --user astro_provider_ray-1.0.0-py2.py3-none-any.whl
+RUN pip install --user astro_provider_ray-1.0.0-py3-none-any.whl
 
 USER root
 
