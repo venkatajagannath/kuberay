@@ -1,6 +1,7 @@
 from airflow.decorators import dag, task
 from datetime import datetime, timedelta
 import os
+from ray_provider.decorators.ray import ray_task
 
 
 RAY_SPEC = '/usr/local/airflow/dags/scripts/ray-gpu.yaml'
@@ -29,7 +30,7 @@ RAY_TASK_CONFIG = {
 )
 def taskflow_gpu_task():
     
-    @task.ray(config=RAY_TASK_CONFIG)
+    @ray_task(config=RAY_TASK_CONFIG)
     def ray_decorator_task(number):
 
         import ray
