@@ -50,7 +50,7 @@ submit_ray_job = SubmitRayJob(task_id="SubmitRayJob",
                                  use_gpu=False,
                                  dag = dag,)
 """
-# setup_cluster >> submit_ray_job
+setup_cluster >> submit_ray_job
 # Create ray cluster and submit ray job 
 #setup_cluster.as_setup() >> submit_ray_job >> delete_cluster.as_teardown()
 #setup_cluster >> delete_cluster
