@@ -59,6 +59,7 @@ spec:
     rayStartParams:
       block: "true"
     template:
+      metadata:
       spec:
         containers:
         - name: machine-learning
