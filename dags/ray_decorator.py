@@ -3,9 +3,6 @@ from datetime import datetime, timedelta
 import os
 from ray_provider.decorators.ray import ray_task
 
-
-RAY_SPEC = '/usr/local/airflow/dags/scripts/ray-gpu.yaml'
-RAY_SVC = '/usr/local/airflow/dags/scripts/ray-service.yaml'
 RAY_RUNTIME_ENV = {"working_dir": '/usr/local/airflow/dags/ray_scripts'}
 
 RAY_TASK_CONFIG = {

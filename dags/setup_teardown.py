@@ -11,11 +11,7 @@ default_args = {
     'retry_delay': timedelta(minutes=0),
 }
 
-CLUSTERNAME = 'RayCluster'
-REGION = 'us-east-2'
-K8SPEC = '/usr/local/airflow/dags/scripts/k8.yaml'
 RAY_SPEC = '/usr/local/airflow/dags/scripts/ray.yaml'
-RAY_SVC = '/usr/local/airflow/dags/scripts/ray-service.yaml'
 RAY_RUNTIME_ENV = {"working_dir": '/usr/local/airflow/dags/ray_scripts'}
 
 dag = DAG(
@@ -27,10 +23,9 @@ dag = DAG(
 
 setup_cluster = SetupRayCluster(task_id="SetupRayCluster",
                                 conn_id = "ray_conn",
-                                 ray_cluster_yaml=RAY_SPEC,
-                                 ray_svc_yaml= RAY_SVC,
-                                 use_gpu=False,
-                                 dag = dag,)
+                                ray_cluster_yaml=RAY_SPEC,
+                                use_gpu=False,
+                                dag = dag,)
 
 submit_ray_job = SubmitRayJob(task_id="SubmitRayJob",
                               conn_id="ray_conn",
@@ -41,13 +36,13 @@ submit_ray_job = SubmitRayJob(task_id="SubmitRayJob",
                               memory=0,
                               resources={},
                               xcom_task_key = "SetupRayCluster.dashboard",
+                              poll_interval=5,
                               dag = dag,)
 
 
 delete_cluster = DeleteRayCluster(task_id="DeleteRayCluster",
                                   conn_id = "ray_conn",
                                  ray_cluster_yaml=RAY_SPEC,
-                                 ray_svc_yaml= RAY_SVC,
                                  use_gpu=False,
                                  dag = dag,)
 # setup_cluster >> submit_ray_job
