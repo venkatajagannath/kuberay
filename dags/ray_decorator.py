@@ -1,5 +1,6 @@
-from airflow.decorators import dag
+from airflow.decorators import dag, task
 from datetime import datetime, timedelta
+import os
 from ray_provider.decorators.ray import ray_task
 
 RAY_TASK_CONFIG = {
@@ -16,7 +17,7 @@ RAY_TASK_CONFIG = {
 }
 
 @dag(
-    dag_id='ray_multi_task_dag',
+    'ray_decorator',
     start_date=datetime(2024, 3, 26),
     default_args={
         'owner': 'airflow',
@@ -24,61 +25,21 @@ RAY_TASK_CONFIG = {
         'retry_delay': timedelta(minutes=1),
     },
     schedule_interval=None,
-    description='Multi-task Ray DAG for data processing and analysis'
+    description='Run a ray task on the cluster'
 )
-def taskflow_ray_multi_task():
-
+def taskflow_task():
+    
     @ray_task(config=RAY_TASK_CONFIG)
-    def generate_data(num_points: int):
+    def ray_decorator_task(number):
+
         import ray
-        import numpy as np
 
         @ray.remote
-        def create_point():
-            return np.random.rand(2)
+        def hello_world():
+            return f"{number} -- hello world"
 
         ray.init()
-        points = ray.get([create_point.remote() for _ in range(num_points)])
-        return points
-
-    @ray_task(config=RAY_TASK_CONFIG)
-    def calculate_distances(points):
-        import ray
-        import numpy as np
-
-        @ray.remote
-        def compute_distance(point):
-            return np.linalg.norm(point)
-
-        ray.init()
-        distances = ray.get([compute_distance.remote(point) for point in points])
-        return distances
-
-    @ray_task(config=RAY_TASK_CONFIG)
-    def analyze_results(distances):
-        import ray
-        import numpy as np
-
-        @ray.remote
-        def compute_stats(data):
-            return {
-                "mean": np.mean(data),
-                "median": np.median(data),
-                "std_dev": np.std(data)
-            }
-
-        ray.init()
-        stats = ray.get(compute_stats.remote(distances))
-        print("Distance analysis results:")
-        print(f"Mean: {stats['mean']:.4f}")
-        print(f"Median: {stats['median']:.4f}")
-        print(f"Standard Deviation: {stats['std_dev']:.4f}")
-        return stats
-
-    # Define the task dependencies
-    points = generate_data(1000)
-    distances = calculate_distances(points)
-    analyze_results(distances)
-
-# Instantiate the DAG
-ray_multi_task_dag = taskflow_ray_multi_task()
+        print(ray.get(hello_world.remote()))
+    
+    ray_decorator_task(123)
+cpu_dag = taskflow_task()
