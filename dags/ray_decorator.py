@@ -40,4 +40,5 @@ def taskflow_task():
         print(ray.get(hello_world.remote()))
     
     ray_decorator_task(123)
+
 cpu_dag = taskflow_task()
