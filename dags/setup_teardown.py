@@ -39,7 +39,6 @@ submit_ray_job = SubmitRayJob(task_id="SubmitRayJob",
                               poll_interval=5,
                               dag = dag,)
 
-
 delete_cluster = DeleteRayCluster(task_id="DeleteRayCluster",
                                   conn_id = "ray_conn",
                                  ray_cluster_yaml=RAY_SPEC,
