@@ -8,7 +8,7 @@ import numpy as np
 RAY_RUNTIME_ENV = {"working_dir": '/usr/local/airflow/dags/ray_scripts',
                    "pip": ["numpy"]}
 RAY_TASK_CONFIG = {
-    'conn_id': 'ray_conn',
+    'conn_id': 'ray_job',
     'entrypoint': 'python script.py',
     'runtime_env': RAY_RUNTIME_ENV,
     'num_cpus': 1,
