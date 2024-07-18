@@ -13,7 +13,8 @@ RAY_TASK_CONFIG = {
     'runtime_env': RAY_RUNTIME_ENV,
     'num_cpus': 1,
     'num_gpus': 0,
-    'memory': 0
+    'memory': 0,
+    'poll_interval': 5
 }
 
 @dag(
@@ -33,6 +34,8 @@ def taskflow_ray_multi_task():
     def generate_data(num_points):
         
         import ray
+        import numpy as np
+
         @ray.remote
         def create_point():
             return np.random.rand(2)
@@ -44,6 +47,8 @@ def taskflow_ray_multi_task():
     @ray_task(config=RAY_TASK_CONFIG)
     def calculate_distances(points):
         import ray
+        import numpy as np
+
         @ray.remote
         def compute_distance(point):
             return np.linalg.norm(point)
@@ -55,6 +60,7 @@ def taskflow_ray_multi_task():
     @ray_task(config=RAY_TASK_CONFIG)
     def analyze_results(distances):
         import ray
+        import numpy as np
         @ray.remote
         def compute_stats(data):
             return {
