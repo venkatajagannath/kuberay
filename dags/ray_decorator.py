@@ -31,6 +31,8 @@ def taskflow_ray_multi_task():
 
     @ray_task(config=RAY_TASK_CONFIG)
     def generate_data(num_points):
+        
+        import ray
         @ray.remote
         def create_point():
             return np.random.rand(2)
@@ -41,6 +43,7 @@ def taskflow_ray_multi_task():
 
     @ray_task(config=RAY_TASK_CONFIG)
     def calculate_distances(points):
+        import ray
         @ray.remote
         def compute_distance(point):
             return np.linalg.norm(point)
@@ -51,6 +54,7 @@ def taskflow_ray_multi_task():
 
     @ray_task(config=RAY_TASK_CONFIG)
     def analyze_results(distances):
+        import ray
         @ray.remote
         def compute_stats(data):
             return {
