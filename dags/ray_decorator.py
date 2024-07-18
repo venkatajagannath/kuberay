@@ -8,9 +8,7 @@ RAY_TASK_CONFIG = {
     'runtime_env': {
         "working_dir": '/usr/local/airflow/dags/ray_scripts',
         "pip": ["numpy"]
-    },
-    'num_cpus': 1,
-    'num_gpus': 0,
+    }
 }
 
 @dag(
