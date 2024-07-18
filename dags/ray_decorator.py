@@ -5,15 +5,12 @@ from ray_provider.decorators.ray import ray_task
 
 RAY_TASK_CONFIG = {
     'conn_id': 'ray_job',
-    'entrypoint': 'python script.py',
     'runtime_env': {
         "working_dir": '/usr/local/airflow/dags/ray_scripts',
         "pip": ["numpy"]
     },
     'num_cpus': 1,
     'num_gpus': 0,
-    'memory': 0,
-    'poll_interval': 5
 }
 
 @dag(
