@@ -1,16 +1,14 @@
-from airflow.decorators import dag, task
+from airflow.decorators import dag
 from datetime import datetime, timedelta
-import os
 from ray_provider.decorators.ray import ray_task
-import ray
-import numpy as np
 
-RAY_RUNTIME_ENV = {"working_dir": '/usr/local/airflow/dags/ray_scripts',
-                   "pip": ["numpy"]}
 RAY_TASK_CONFIG = {
     'conn_id': 'ray_job',
     'entrypoint': 'python script.py',
-    'runtime_env': RAY_RUNTIME_ENV,
+    'runtime_env': {
+        "working_dir": '/usr/local/airflow/dags/ray_scripts',
+        "pip": ["numpy"]
+    },
     'num_cpus': 1,
     'num_gpus': 0,
     'memory': 0,
@@ -18,7 +16,7 @@ RAY_TASK_CONFIG = {
 }
 
 @dag(
-    'ray_multi_task_dag',
+    dag_id='ray_multi_task_dag',
     start_date=datetime(2024, 3, 26),
     default_args={
         'owner': 'airflow',
@@ -31,8 +29,7 @@ RAY_TASK_CONFIG = {
 def taskflow_ray_multi_task():
 
     @ray_task(config=RAY_TASK_CONFIG)
-    def generate_data(num_points):
-        
+    def generate_data(num_points: int):
         import ray
         import numpy as np
 
@@ -61,6 +58,7 @@ def taskflow_ray_multi_task():
     def analyze_results(distances):
         import ray
         import numpy as np
+
         @ray.remote
         def compute_stats(data):
             return {
@@ -82,4 +80,5 @@ def taskflow_ray_multi_task():
     distances = calculate_distances(points)
     analyze_results(distances)
 
+# Instantiate the DAG
 ray_multi_task_dag = taskflow_ray_multi_task()
