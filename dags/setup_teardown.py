@@ -49,3 +49,5 @@ delete_cluster = DeleteRayCluster(task_id="DeleteRayCluster",
 setup_cluster.as_setup() >> submit_ray_job >> delete_cluster.as_teardown()
 setup_cluster >> delete_cluster
 
+
+
