@@ -25,7 +25,7 @@ setup_cluster = SetupRayCluster(task_id="SetupRayCluster",
                                 conn_id = "ray_conn",
                                 ray_cluster_yaml=RAY_SPEC,
                                 use_gpu=False,
-                                update_if_exists=True,
+                                update_if_exists=False,
                                 dag = dag,)
 
 submit_ray_job = SubmitRayJob(task_id="SubmitRayJob",
