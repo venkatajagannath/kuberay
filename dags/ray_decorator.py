@@ -4,7 +4,6 @@ from ray_provider.decorators.ray import task
 
 RAY_TASK_CONFIG = {
     'conn_id': 'ray_job',
-    'entrypoint': 'python script.py',
     'runtime_env': {
         "working_dir": '/usr/local/airflow/dags/ray_scripts',
         "pip": ["numpy"]
