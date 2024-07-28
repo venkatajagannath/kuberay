@@ -1,7 +1,7 @@
 from airflow.decorators import dag, task
 from datetime import datetime, timedelta
 import os
-from ray_provider.decorators.ray import ray_task
+from ray_provider.decorators.ray import task
 
 RAY_TASK_CONFIG = {
     'conn_id': 'ray_job',
@@ -27,7 +27,7 @@ RAY_TASK_CONFIG = {
 )
 def taskflow_task():
     
-    @ray_task(config=RAY_TASK_CONFIG)
+    @task.ray(config=RAY_TASK_CONFIG)
     def ray_decorator_task(number):
 
         import ray
