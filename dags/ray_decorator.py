@@ -46,7 +46,9 @@ def ray_taskflow_dag():
         data = np.array(data)
         futures = [square.remote(x) for x in data]
         results = ray.get(futures)
-        return np.mean(results)
+        mean = np.mean(results)
+        print(mean)
+        return mean
 
     data = generate_data()
     process_data_with_ray(data)
