@@ -1,4 +1,4 @@
-from airflow.decorators import dag
+from airflow.decorators import dag, task
 from datetime import datetime, timedelta
 from ray_provider.decorators.ray import task
 
