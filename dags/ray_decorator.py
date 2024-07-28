@@ -15,30 +15,40 @@ RAY_TASK_CONFIG = {
 }
 
 @dag(
-    'ray_decorator',
-    start_date=datetime(2024, 3, 26),
+    dag_id='ray_taskflow_example',
+    start_date=datetime(2023, 1, 1),
+    schedule_interval=timedelta(days=1),
+    catchup=False,
     default_args={
         'owner': 'airflow',
         'retries': 1,
-        'retry_delay': timedelta(minutes=1),
+        'retry_delay': timedelta(minutes=5),
     },
-    schedule_interval=None,
-    description='Run a ray task on the cluster'
+    tags=['ray', 'example'],
 )
-def taskflow_task():
-    @task.ray(config=RAY_TASK_CONFIG)
-    def ray_decorator_task(number):
-        import ray
+def ray_taskflow_dag():
 
+    @task
+    def generate_data():
+        import numpy as np
+        return np.random.rand(100).tolist()
+
+    @task.ray(config=RAY_TASK_CONFIG)
+    def process_data_with_ray(data):
+        import ray
+        import numpy as np
+        
         @ray.remote
-        def hello_world(num):
-            return f"{num} -- hello world"
+        def square(x):
+            return x ** 2
 
         ray.init()
-        result = ray.get(hello_world.remote(number))
-        print(result)
-        return result
+        data = np.array(data)
+        futures = [square.remote(x) for x in data]
+        results = ray.get(futures)
+        return np.mean(results)
 
-    ray_decorator_task(123)
+    data = generate_data()
+    process_data_with_ray(data)
 
-cpu_dag = taskflow_task()
+ray_example_dag = ray_taskflow_dag()
