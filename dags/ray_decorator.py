@@ -33,11 +33,11 @@ def taskflow_task():
         import ray
 
         @ray.remote
-        def hello_world():
+        def hello_world(number):
             return f"{number} -- hello world"
 
         ray.init()
-        print(ray.get(hello_world.remote()))
+        print(ray.get(hello_world.remote(number)))
     
     ray_decorator_task(123)
 
