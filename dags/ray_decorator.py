@@ -47,7 +47,7 @@ def ray_taskflow_dag():
         futures = [square.remote(x) for x in data]
         results = ray.get(futures)
         mean = np.mean(results)
-        print(mean)
+        print(f"Mean of this population is {mean}")
         return mean
 
     data = generate_data()
