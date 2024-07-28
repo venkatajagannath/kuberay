@@ -1,13 +1,14 @@
-from airflow.decorators import dag, task
+from airflow.decorators import dag
 from datetime import datetime, timedelta
-import os
 from ray_provider.decorators.ray import task
 
 RAY_TASK_CONFIG = {
     'conn_id': 'ray_job',
     'entrypoint': 'python script.py',
-    'runtime_env': {"working_dir": '/usr/local/airflow/dags/ray_scripts',
-                   "pip": ["numpy"]},
+    'runtime_env': {
+        "working_dir": '/usr/local/airflow/dags/ray_scripts',
+        "pip": ["numpy"]
+    },
     'num_cpus': 1,
     'num_gpus': 0,
     'memory': 0,
@@ -26,19 +27,19 @@ RAY_TASK_CONFIG = {
     description='Run a ray task on the cluster'
 )
 def taskflow_task():
-    
     @task.ray(config=RAY_TASK_CONFIG)
     def ray_decorator_task(number):
-
         import ray
 
         @ray.remote
-        def hello_world(number):
-            return f"{number} -- hello world"
+        def hello_world(num):
+            return f"{num} -- hello world"
 
         ray.init()
-        print(ray.get(hello_world.remote(number)))
-    
+        result = ray.get(hello_world.remote(number))
+        print(result)
+        return result
+
     ray_decorator_task(123)
 
 cpu_dag = taskflow_task()
