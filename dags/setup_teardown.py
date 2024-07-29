@@ -9,7 +9,7 @@ default_args = {
     'retry_delay': timedelta(minutes=0),
 }
 
-CONN_ID = "ray_az"
+CONN_ID = "ray_conn"
 RAY_SPEC = '/usr/local/airflow/dags/scripts/ray.yaml'
 RAY_RUNTIME_ENV = {"working_dir": '/usr/local/airflow/dags/ray_scripts'}
 
