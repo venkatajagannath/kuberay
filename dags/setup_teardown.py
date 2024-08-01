@@ -17,7 +17,7 @@ dag = DAG(
     'Setup_Teardown',
     default_args=default_args,
     description='Setup Ray cluster and submit a job',
-    schedule_interval=None,
+    schedule=None,
 )
 
 setup_cluster = SetupRayCluster(task_id="SetupRayCluster",
