@@ -8,7 +8,7 @@ def hello_world():
 def main():
     ray.init()
     start_time = time.time()
-    duration = 15 * 60  # 15 minutes in seconds
+    duration = 2 * 60  # 15 minutes in seconds
 
     while time.time() - start_time < duration:
         result = ray.get(hello_world.remote())
