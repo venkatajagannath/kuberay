@@ -1,6 +1,8 @@
 # Astro Runtime includes the following pre-installed providers packages: https://docs.astronomer.io/astro/runtime-image-architecture#provider-packages
 kubernetes
 awscli
+#azure-cli
+#gcloud
 ray[default]==2.31.0
-concurrent_log_handler
 requests
+astro-provider-ray==0.2.1

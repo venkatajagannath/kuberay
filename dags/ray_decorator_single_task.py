@@ -1,23 +1,29 @@
 from airflow.decorators import dag, task as airflow_task
+import yaml
 from datetime import datetime, timedelta
 from ray_provider.decorators.ray import ray
+import re
 
+CONN_ID = "ray_conn"
+RAY_SPEC = '/usr/local/airflow/dags/scripts/ray.yaml'
 RAY_TASK_CONFIG = {
-    'conn_id': 'ray_conn',
-    'runtime_env': {
-        "working_dir": '/usr/local/airflow/dags/ray_scripts',
-        "pip": ["numpy"]
-    },
-    'num_cpus': 1,
-    'num_gpus': 0,
-    'memory': 0,
-    'poll_interval': 5,
-}
+        'conn_id': CONN_ID,
+        'runtime_env': {
+            "working_dir": '/usr/local/airflow/dags/ray_scripts',
+            "pip": ["numpy"]
+        },
+        'num_cpus': 1,
+        'num_gpus': 0,
+        'memory': 0,
+        'poll_interval': 5,
+        'ray_cluster_yaml': RAY_SPEC,
+        'xcom_task_key': "dashboard"
+    }
 
 @dag(
-    dag_id='ray_taskflow_example',
+    dag_id='single_operator_taskflow_example',
     start_date=datetime(2023, 1, 1),
-    schedule_interval=timedelta(days=1),
+    schedule=None,
     catchup=False,
     default_args={
         'owner': 'airflow',
@@ -27,7 +33,6 @@ RAY_TASK_CONFIG = {
     tags=['ray', 'example'],
 )
 def ray_taskflow_dag():
-
     @airflow_task
     def generate_data():
         import numpy as np
@@ -49,6 +54,7 @@ def ray_taskflow_dag():
         mean = np.mean(results)
         print(f"Mean of this population is {mean}")
         return mean
+        
 
     data = generate_data()
     process_data_with_ray(data)

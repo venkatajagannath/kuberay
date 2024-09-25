@@ -3,13 +3,12 @@ kind: RayCluster
 metadata:
   name: raycluster-complete
 spec:
-  rayVersion: "2.10.0"
   enableInTreeAutoscaling: true
   headGroupSpec:
-    serviceType: LoadBalancer
     rayStartParams:
-      dashboard-host: "0.0.0.0"
-      block: "true"
+      block: 'true'
+      dashboard-host: 0.0.0.0
+    serviceType: LoadBalancer
     template:
       metadata:
         labels:
@@ -41,26 +40,26 @@ spec:
           - containerPort: 8080
             name: metrics
           - containerPort: 44217
-            name: as-metrics # autoscaler
+            name: as-metrics
           - containerPort: 44227
             name: dash-metrics # dashboard
   workerGroupSpecs:
   - groupName: small-group
-    replicas: 2
-    minReplicas: 2
-    maxReplicas: 5
+    maxReplicas: 2
+    minReplicas: 1
     rayStartParams:
-      block: "true"
+      block: 'true'
+    replicas: 1
     template:
-      metadata:
+      metadata: null
       spec:
         containers:
-        - name: machine-learning
-          image: rayproject/ray-ml:latest
+        - image: rayproject/ray-ml:latest
+          name: machine-learning
           resources:
             limits:
-              cpu: 2
-              memory: 4Gi
+              cpu: 1
+              memory: 1Gi
             requests:
-              cpu: 2
-              memory: 4Gi
+              cpu: 1
+              memory: 1Gi
